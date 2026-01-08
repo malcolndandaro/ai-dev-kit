@@ -8,6 +8,7 @@ from databricks_tools_core.spark_declarative_pipelines.pipelines import (
     create_or_update_pipeline,
 )
 from databricks_tools_core.file import upload_folder
+from databricks_tools_core.unity_catalog.tables import get_table
 from databricks.sdk import WorkspaceClient
 
 from databricks_ai_functions._shared.llm import call_llm
@@ -15,6 +16,45 @@ from databricks_ai_functions._shared.skills import load_skills, retrieve_relevan
 
 
 DEFAULT_WORKSPACE_ROOT = "/Workspace/Shared/ai-dev-kit/pipelines"
+
+
+def _extract_source_tables(user_request: str) -> List[str]:
+    """
+    Extract potential source table names from user request.
+    Looks for patterns like catalog.schema.table or mentions of "from X".
+    """
+    import re
+    
+    # Pattern for 3-part names: word.word.word
+    pattern = r'\b([a-z_][a-z0-9_]*\.[a-z_][a-z0-9_]*\.[a-z_][a-z0-9_]*)\b'
+    matches = re.findall(pattern, user_request.lower())
+    
+    return list(set(matches))  # Remove duplicates
+
+
+def _get_source_schema_info(table_names: List[str]) -> str:
+    """
+    Fetch schema information for source tables and format for LLM.
+    Returns a string with table schemas or empty string if none found.
+    """
+    if not table_names:
+        return ""
+    
+    schema_info = []
+    for table_name in table_names:
+        try:
+            table_info = get_table(table_name)
+            if table_info and table_info.columns:
+                cols = [f"{col.name} {col.type_text}" for col in table_info.columns[:20]]  # Limit to first 20 columns
+                schema_info.append(f"\nSource table: {table_name}")
+                schema_info.append(f"Columns: {', '.join(cols)}")
+                if len(table_info.columns) > 20:
+                    schema_info.append(f"... and {len(table_info.columns) - 20} more columns")
+        except Exception as e:
+            # If we can't fetch schema, just continue - LLM will work without it
+            continue
+    
+    return "\n".join(schema_info) if schema_info else ""
 
 
 def _generate_pipeline_plan(
@@ -25,55 +65,68 @@ def _generate_pipeline_plan(
     model: str,
 ) -> Dict[str, Any]:
     """Prompt LLM to produce pipeline plan JSON."""
+    
+    # Extract and fetch source table schemas
+    source_tables = _extract_source_tables(user_request)
+    schema_info = _get_source_schema_info(source_tables)
+    
     system = (
-        "You are a Databricks engineer. Generate Spark Declarative Pipelines. Output ONLY valid JSON."
+        "You are a Databricks engineer expert in Spark Declarative Pipelines (SDP). "
+        "Generate complete pipeline configurations. Output ONLY valid JSON."
     )
 
     location_hint = ""
     if catalog or schema:
         location_hint = f"(target: catalog={catalog or ''}, schema={schema or ''})"
 
-    user_prompt = f"""User request: {user_request} {location_hint}
+    schema_section = ""
+    if schema_info:
+        schema_section = f"\n\nSOURCE TABLE SCHEMAS:\n{schema_info}\n\nUse the EXACT column names from these schemas."
 
-Skills: {json.dumps(skills, indent=2)}
+    skills_section = "\n\n".join([f"# {s['path']}\n{s['snippet']}" for s in skills])
 
-Output JSON:
+    user_prompt = f"""User request: {user_request} {location_hint}{schema_section}
+
+REFERENCE DOCUMENTATION (follow these exact patterns):
+{skills_section}
+
+Generate a pipeline configuration as JSON:
 {{
   "name": "descriptive_pipeline_name",
   "catalog": "main",
   "schema": "target_schema",
   "files": [
-    {{"rel_path": "transformations/01_bronze_source.sql", "language": "SQL", "content": "CREATE OR REFRESH MATERIALIZED VIEW bronze_table AS SELECT * FROM source_table"}},
-    {{"rel_path": "transformations/02_silver_transform.sql", "language": "SQL", "content": "CREATE OR REFRESH MATERIALIZED VIEW silver_table AS SELECT * FROM bronze_table"}},
-    {{"rel_path": "transformations/03_gold_aggregate.sql", "language": "SQL", "content": "CREATE OR REFRESH MATERIALIZED VIEW gold_table AS SELECT * FROM silver_table"}}
-  ],
-  "start_run": true,
-  "full_refresh": true
+    {{"rel_path": "transformations/01_bronze.sql", "language": "SQL", "content": "CREATE OR REFRESH STREAMING TABLE bronze_data AS SELECT * FROM STREAM catalog.schema.source"}},
+    {{"rel_path": "transformations/02_silver.sql", "language": "SQL", "content": "CREATE OR REFRESH STREAMING TABLE silver_data AS SELECT * FROM STREAM bronze_data WHERE col IS NOT NULL"}}
+  ]
 }}
 
-CRITICAL REQUIREMENTS:
-- catalog and schema: CAREFULLY READ THE USER REQUEST FOR TARGET LOCATION
-  * If user says "main.ai_dev_kit" or mentions fully qualified sources, infer matching target
-  * ONLY use schema="default" if the user explicitly says "default" or doesn't mention any schema
-  * When in doubt, extract schema from the source table path
-- name: Use a descriptive pipeline name based on the user's request
-- files: Create actual SDP SQL with proper syntax (use MATERIALIZED VIEW for batch or STREAMING TABLE for streaming)
-- rel_path: MUST start with "transformations/" and use numeric prefixes (01_, 02_, 03_) to define execution order
-- Do NOT include root_path or storage fields
-- Set start_run to true and full_refresh to true
-- Avoid conflicts between output table names and source names
+CRITICAL RULES:
 
-SQL SYNTAX RULES FOR SDP:
-- DO NOT use USE CATALOG or USE SCHEMA statements
-- Use fully qualified names for reads: catalog.schema.table
-- STREAMING: use CREATE STREAMING TABLE for streaming datasets
-- OUTPUT table/view names: simple names without catalog/schema prefix
+1. TABLE REFERENCES:
+   - External sources: catalog.schema.table (3-part, NOT 4-part)
+   - Pipeline tables: simple names ONLY (bronze_data, not catalog.schema.bronze_data)
 
-FOLDER STRUCTURE:
-- {{"workspace_root"}}/{{"pipeline_name"}}/transformations/*.sql
-- rel_path values MUST begin with "transformations/"
+2. STREAMING KEYWORD:
+   - **CRITICAL**: For CREATE OR REFRESH STREAMING TABLE, ALWAYS use "FROM STREAM source_table"
+   - This applies to ALL sources - both external tables AND pipeline tables
+   - External: FROM STREAM catalog.schema.table
+   - Pipeline: FROM STREAM bronze_data
+   - Without STREAM keyword, you get "CREATE_APPEND_ONCE_FLOW_FROM_BATCH_QUERY_NOT_ALLOWED" error
 
-Output JSON ONLY."""
+3. COLUMN NAMES:
+   - Use EXACT column names from schemas provided above
+
+4. SYNTAX PATTERNS:
+   - Follow the EXACT syntax patterns from REFERENCE DOCUMENTATION above
+   - Use complete examples - don't omit any required clauses
+   - For AUTO CDC: COLUMNS clause MUST have EXCEPT - use "COLUMNS * EXCEPT (_rescued_data)" not just "COLUMNS *"
+
+5. FILE STRUCTURE:
+   - rel_path MUST start with "transformations/"
+   - Use numeric prefixes (01_, 02_, 03_)
+
+Output ONLY valid JSON."""
 
     content = call_llm(system=system, user_prompt=user_prompt, model=model, temperature=0.0, max_tokens=4000)
     plan = json.loads(content)
@@ -125,8 +178,13 @@ def build_pipeline(
     Takes natural language request and creates a running SDP pipeline.
     """
     # 1. Load and retrieve relevant skills
-    skills_dir = skills_path or "databricks-skills/sdp"
-    all_skills = load_skills(skills_dir)
+    if skills_path is None:
+        # Default: look for skills relative to this file's location, going up to project root
+        module_dir = Path(__file__).parent
+        project_root = module_dir.parent.parent.parent  # ai-dev-kit root
+        skills_path = str(project_root / "databricks-skills" / "sdp")
+    
+    all_skills = load_skills(skills_path)
     relevant_skills = retrieve_relevant_skills(user_request, all_skills, model, k=6)
 
     # 2. Generate pipeline configuration with LLM

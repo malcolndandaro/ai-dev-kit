@@ -16,6 +16,7 @@ AUTO CDC INTO customers_history
 FROM stream(customers_cdc_clean)
 KEYS (customer_id)
 SEQUENCE BY event_timestamp
+COLUMNS * EXCEPT (_rescued_data)
 STORED AS SCD TYPE 2
 TRACK HISTORY ON *;
 ```
@@ -186,6 +187,7 @@ AUTO CDC INTO products_history
 FROM stream(products_cdc_clean)
 KEYS (product_id)
 SEQUENCE BY event_timestamp
+COLUMNS * EXCEPT (_rescued_data)
 STORED AS SCD TYPE 2
 TRACK HISTORY ON price, cost;  -- Only these columns trigger new versions
 ```

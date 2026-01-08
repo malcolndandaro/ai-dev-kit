@@ -232,6 +232,7 @@ AUTO CDC INTO customers_history
 FROM STREAM customers_cdc_source
 KEYS (customer_id)
 SEQUENCE BY event_timestamp
+COLUMNS * EXCEPT (_rescued_data)
 STORED AS SCD TYPE 2
 TRACK HISTORY ON *;
 ```

@@ -61,16 +61,28 @@ def call_llm(
     Returns the response content as plain text (code fences removed if present).
     """
     w = WorkspaceClient()
-    response = w.serving_endpoints.query(
-        name=model,
-        messages=[
+    
+    # Build query params - only include seed if provided and supported
+    query_params = {
+        "name": model,
+        "messages": [
             ChatMessage(role=ChatMessageRole.SYSTEM, content=system),
             ChatMessage(role=ChatMessageRole.USER, content=user_prompt),
         ],
-        temperature=temperature,
-        max_tokens=max_tokens,
-        seed=seed,
-    )
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+    }
+    
+    # Only add seed if provided (some SDK versions may not support it)
+    if seed is not None:
+        try:
+            response = w.serving_endpoints.query(**query_params, seed=seed)
+        except TypeError:
+            # Fallback if seed parameter is not supported
+            response = w.serving_endpoints.query(**query_params)
+    else:
+        response = w.serving_endpoints.query(**query_params)
+    
     raw = _extract_text_content(response)
     return _strip_fences(raw)
 
