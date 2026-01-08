@@ -170,15 +170,33 @@ def create_pipeline(
     w = WorkspaceClient()
     libraries = _build_libraries(workspace_file_paths)
 
-    return w.pipelines.create(
-        name=name,
-        root_path=root_path,
-        catalog=catalog,
-        schema=schema,
-        libraries=libraries,
-        continuous=False,
-        serverless=True,
-    )
+    # Check if SDK supports root_path by inspecting the method signature
+    import inspect
+    sig = inspect.signature(w.pipelines.create)
+    supports_root_path = 'root_path' in sig.parameters
+    
+    if supports_root_path:
+        return w.pipelines.create(
+            name=name,
+            root_path=root_path,
+            catalog=catalog,
+            schema=schema,
+            libraries=libraries,
+            continuous=False,
+            serverless=True,
+        )
+    else:
+        # Older SDK version - use storage parameter instead
+        # root_path was renamed to storage in earlier SDK versions
+        return w.pipelines.create(
+            name=name,
+            storage=root_path,
+            catalog=catalog,
+            schema=schema,
+            libraries=libraries,
+            continuous=False,
+            serverless=True,
+        )
 
 
 def get_pipeline(pipeline_id: str) -> GetPipelineResponse:
@@ -218,10 +236,19 @@ def update_pipeline(
 
     kwargs: Dict[str, Any] = {"pipeline_id": pipeline_id}
 
+    # Check if SDK supports root_path
+    import inspect
+    sig = inspect.signature(w.pipelines.update)
+    supports_root_path = 'root_path' in sig.parameters
+
     if name:
         kwargs["name"] = name
     if root_path:
-        kwargs["root_path"] = root_path
+        if supports_root_path:
+            kwargs["root_path"] = root_path
+        else:
+            # Older SDK - use storage instead
+            kwargs["storage"] = root_path
     if catalog:
         kwargs["catalog"] = catalog
     if schema:

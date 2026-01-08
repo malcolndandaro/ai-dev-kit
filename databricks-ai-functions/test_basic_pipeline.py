@@ -27,7 +27,10 @@ try:
 except NameError:
     IN_DATABRICKS = False
     # Local development - use relative paths
-    project_root = Path(__file__).parent.parent
+    # This file is in: ai-dev-kit/databricks-ai-functions/test_basic_pipeline.py
+    # We need to add: ai-dev-kit/databricks-tools-core (to import databricks_tools_core.*)
+    #                  ai-dev-kit/databricks-ai-functions (to import databricks_ai_functions.*)
+    project_root = Path(__file__).parent.parent  # ai-dev-kit/
     sys.path.insert(0, str(project_root / "databricks-tools-core"))
     sys.path.insert(0, str(project_root / "databricks-ai-functions"))
 
