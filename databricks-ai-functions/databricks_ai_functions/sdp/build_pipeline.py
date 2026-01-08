@@ -179,25 +179,31 @@ def build_pipeline(
     """
     # 1. Load and retrieve relevant skills
     if skills_path is None:
-        # Default: look for skills relative to this file's location
+        # Skills are now embedded in the package at: databricks_ai_functions/skills/
         module_dir = Path(__file__).parent
+        package_skills_path = module_dir.parent / "skills" / "sdp"
         
-        # Check if we're in a bundled MLflow model (code_paths scenario)
-        # In bundled models: /model/code/databricks_ai_functions/sdp/build_pipeline.py
-        # Skills are at: /model/code/databricks_skills/sdp/
-        code_parent = module_dir.parent.parent  # Goes to /model/code/
-        bundled_skills_path = code_parent / "databricks_skills" / "sdp"
-        
-        if bundled_skills_path.exists():
-            # We're in a bundled model
-            skills_path = str(bundled_skills_path)
+        if package_skills_path.exists():
+            # Use embedded skills (always available)
+            skills_path = str(package_skills_path)
+            print(f"🔍 DEBUG: Using EMBEDDED skills from package: {skills_path}")
         else:
-            # We're in workspace/local development
-            project_root = module_dir.parent.parent.parent  # ai-dev-kit root
+            # Fallback to workspace (for local dev)
+            project_root = module_dir.parent.parent.parent
             skills_path = str(project_root / "databricks-skills" / "sdp")
+            print(f"🔍 DEBUG: Using WORKSPACE skills (fallback): {skills_path}")
     
+    print(f"🔍 DEBUG: Loading skills from: {skills_path}")
     all_skills = load_skills(skills_path)
+    print(f"🔍 DEBUG: Loaded {len(all_skills)} skill documents")
+    for skill in all_skills[:3]:
+        print(f"   - {skill.get('path', 'unknown')}: {len(skill.get('text', ''))} chars")
+    
     relevant_skills = retrieve_relevant_skills(user_request, all_skills, model, k=6)
+    print(f"🔍 DEBUG: Retrieved {len(relevant_skills)} relevant skills")
+    for skill in relevant_skills[:2]:
+        print(f"   - {skill.get('path', 'unknown')}")
+
 
     # 2. Generate pipeline configuration with LLM
     plan = _generate_pipeline_plan(
