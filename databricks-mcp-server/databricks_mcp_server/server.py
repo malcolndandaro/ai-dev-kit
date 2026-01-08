@@ -10,7 +10,7 @@ from fastmcp import FastMCP
 mcp = FastMCP("Databricks MCP Server")
 
 # Import and register all tools
-from .tools import sql, compute, file, pipelines
+from .tools import sql, compute, file, pipelines, ai_functions
 
 if __name__ == "__main__":
     mcp.run()

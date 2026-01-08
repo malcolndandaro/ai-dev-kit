@@ -1,0 +1,23 @@
+[project]
+name = "databricks-ai-functions"
+version = "0.1.0"
+description = "AI-powered builder functions (SDP pipelines, jobs, workflows) for Databricks"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Proprietary" }
+authors = [{ name = "Databricks Solutions" }]
+dependencies = [
+  "databricks-sdk>=0.31.0",
+  "databricks-tools-core @ file:///${PROJECT_ROOT}/databricks-tools-core",
+]
+
+[project.optional-dependencies]
+test = [
+  "pytest>=7.4",
+  "pytest-mock>=3.10",
+]
+
+[tool.setuptools]
+packages = ["databricks_ai_functions"]
+
+
