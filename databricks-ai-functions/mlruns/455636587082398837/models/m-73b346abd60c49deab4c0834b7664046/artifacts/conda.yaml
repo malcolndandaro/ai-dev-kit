@@ -1,0 +1,10 @@
+channels:
+- conda-forge
+dependencies:
+- python=3.12.2
+- pip<=23.3.1
+- pip:
+  - databricks-sdk>=0.31.0
+  - mlflow>=2.0.0
+  - pandas>=1.0.0
+name: mlflow-env

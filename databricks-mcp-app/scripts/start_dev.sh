@@ -36,6 +36,7 @@ trap cleanup SIGINT SIGTERM
 
 # Start backend
 echo "Starting backend on http://localhost:8000..."
+source .venv/bin/activate
 uvicorn server.app:app --reload --port 8000 --reload-dir server &
 BACKEND_PID=$!
 

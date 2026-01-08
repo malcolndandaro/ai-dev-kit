@@ -1,0 +1,26 @@
+artifact_path: file:///Users/cal.reynolds/Downloads/skunkworks/ai-dev-kit/databricks-ai-functions/mlruns/182868715804995197/models/m-b655c51fe5b14c65a488a7f5d2c901c1/artifacts
+flavors:
+  python_function:
+    cloudpickle_version: 3.1.1
+    code: null
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.pyfunc.model
+    python_model: python_model.pkl
+    python_version: 3.12.2
+    streamable: false
+is_signature_from_type_hint: false
+mlflow_version: 3.1.0
+model_id: m-b655c51fe5b14c65a488a7f5d2c901c1
+model_size_bytes: 4408
+model_uuid: m-b655c51fe5b14c65a488a7f5d2c901c1
+prompts: null
+run_id: 81e731c2c6634cbf9ee8e9ffb79ed0b8
+signature:
+  inputs: '[{"type": "string", "name": "user_request", "required": true}, {"type":
+    "string", "name": "model", "required": true}]'
+  outputs: '[{"type": "string", "name": "response", "required": true}]'
+  params: null
+type_hint_from_example: false
+utc_time_created: '2026-01-08 19:10:03.548868'

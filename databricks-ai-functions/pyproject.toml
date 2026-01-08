@@ -8,7 +8,6 @@ license = { text = "Proprietary" }
 authors = [{ name = "Databricks Solutions" }]
 dependencies = [
   "databricks-sdk>=0.31.0",
-  "databricks-tools-core @ file:///${PROJECT_ROOT}/databricks-tools-core",
 ]
 
 [project.optional-dependencies]

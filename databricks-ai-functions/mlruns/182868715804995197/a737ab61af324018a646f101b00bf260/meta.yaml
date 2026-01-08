@@ -1,0 +1,14 @@
+artifact_uri: file:///Users/cal.reynolds/Downloads/skunkworks/ai-dev-kit/databricks-ai-functions/mlruns/182868715804995197/a737ab61af324018a646f101b00bf260/artifacts
+end_time: 1767899515495
+entry_point_name: ''
+experiment_id: '182868715804995197'
+lifecycle_stage: active
+run_id: a737ab61af324018a646f101b00bf260
+run_name: pipeline_builder_model
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1767899514533
+status: 4
+tags: []
+user_id: cal.reynolds

@@ -1,0 +1,10 @@
+artifact_location: file:///Users/cal.reynolds/Downloads/skunkworks/ai-dev-kit/databricks-ai-functions/mlruns/182868715804995197/models/m-3bc2c546b4d244308010d0f40b721599/artifacts
+creation_timestamp: 1767899514546
+experiment_id: '182868715804995197'
+last_updated_timestamp: 1767899514892
+model_id: m-3bc2c546b4d244308010d0f40b721599
+model_type: null
+name: model
+source_run_id: a737ab61af324018a646f101b00bf260
+status: 2
+status_message: null

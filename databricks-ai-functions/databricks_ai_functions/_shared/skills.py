@@ -21,7 +21,17 @@ def load_skills(skills_path: str) -> List[Dict[str, str]]:
     items: List[Dict[str, str]] = []
 
     if _is_workspace_path(skills_path):
-        w = WorkspaceClient()
+        import os
+        
+        # Use environment variables if available (for model serving)
+        workspace_client_kwargs = {}
+        if os.getenv("DATABRICKS_HOST") and os.getenv("DATABRICKS_TOKEN"):
+            workspace_client_kwargs = {
+                "host": os.getenv("DATABRICKS_HOST"),
+                "token": os.getenv("DATABRICKS_TOKEN")
+            }
+        
+        w = WorkspaceClient(**workspace_client_kwargs)
         try:
             for item in w.workspace.list(skills_path, recursive=True):
                 if (

@@ -60,7 +60,20 @@ def call_llm(
 
     Returns the response content as plain text (code fences removed if present).
     """
-    w = WorkspaceClient()
+    import os
+    
+    # In model serving, use environment variables for auth
+    # The serving environment provides these automatically
+    workspace_client_kwargs = {}
+    
+    if os.getenv("DATABRICKS_HOST") and os.getenv("DATABRICKS_TOKEN"):
+        # Explicit host/token from environment (model serving provides these)
+        workspace_client_kwargs = {
+            "host": os.getenv("DATABRICKS_HOST"),
+            "token": os.getenv("DATABRICKS_TOKEN")
+        }
+    
+    w = WorkspaceClient(**workspace_client_kwargs)
     
     # Build query params - only include seed if provided and supported
     query_params = {

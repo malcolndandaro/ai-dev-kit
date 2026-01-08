@@ -179,10 +179,22 @@ def build_pipeline(
     """
     # 1. Load and retrieve relevant skills
     if skills_path is None:
-        # Default: look for skills relative to this file's location, going up to project root
+        # Default: look for skills relative to this file's location
         module_dir = Path(__file__).parent
-        project_root = module_dir.parent.parent.parent  # ai-dev-kit root
-        skills_path = str(project_root / "databricks-skills" / "sdp")
+        
+        # Check if we're in a bundled MLflow model (code_paths scenario)
+        # In bundled models: /model/code/databricks_ai_functions/sdp/build_pipeline.py
+        # Skills are at: /model/code/databricks_skills/sdp/
+        code_parent = module_dir.parent.parent  # Goes to /model/code/
+        bundled_skills_path = code_parent / "databricks_skills" / "sdp"
+        
+        if bundled_skills_path.exists():
+            # We're in a bundled model
+            skills_path = str(bundled_skills_path)
+        else:
+            # We're in workspace/local development
+            project_root = module_dir.parent.parent.parent  # ai-dev-kit root
+            skills_path = str(project_root / "databricks-skills" / "sdp")
     
     all_skills = load_skills(skills_path)
     relevant_skills = retrieve_relevant_skills(user_request, all_skills, model, k=6)
@@ -231,7 +243,17 @@ def build_pipeline(
     )
 
     # 7. Return result
-    w = WorkspaceClient()
+    import os
+    
+    # Use environment variables if available (for model serving)
+    workspace_client_kwargs = {}
+    if os.getenv("DATABRICKS_HOST") and os.getenv("DATABRICKS_TOKEN"):
+        workspace_client_kwargs = {
+            "host": os.getenv("DATABRICKS_HOST"),
+            "token": os.getenv("DATABRICKS_TOKEN")
+        }
+    
+    w = WorkspaceClient(**workspace_client_kwargs)
     pipeline_url = f"{w.config.host}#joblist/pipelines/{run_result.pipeline_id}"
 
     return {
