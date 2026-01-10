@@ -55,6 +55,38 @@ Add to your project's `.claude/mcp.json` (create the file if it doesn't exist):
 
 **Note:** `"defer_loading": true` improves startup time by not loading all tools upfront.
 
+#### Advanced Configuration
+
+You can pass additional arguments to configure the server:
+
+```json
+{
+  "mcpServers": {
+    "databricks": {
+      "command": "uv",
+      "args": [
+        "run", "python", "-m", "databricks_mcp_server.server",
+        "--profile", "my-profile",
+        "--cluster-id", "0123-456789-abcdef",
+        "--warehouse-id", "abc123def456",
+        "--serverless", "True"
+      ],
+      "cwd": "/path/to/ai-dev-kit/databricks-mcp-server",
+      "defer_loading": true
+    }
+  }
+}
+```
+
+| Argument | Description |
+|----------|-------------|
+| `--profile` | Databricks config profile from `~/.databrickscfg` |
+| `--cluster-id` | Default cluster ID for compute operations |
+| `--warehouse-id` | Default warehouse ID for SQL operations |
+| `--serverless` | Set true to use serverless compute instead of cluster (does not apply to Databricks SQL) |
+
+When `--cluster-id` or `--warehouse-id` are configured, they become the default values for all tool calls, eliminating the need to pass them every time. You may set `--serverless` to "True" to override need for cluster-id.
+
 ### Step 5 (Recommended): Install Databricks skills
 
 The MCP server works best with **Databricks skills** that teach Claude best practices:
@@ -94,6 +126,8 @@ Claude now has both:
 |------|-------------|
 | `execute_databricks_command` | Execute code on a Databricks cluster |
 | `run_python_file_on_databricks` | Run a local Python file on a cluster |
+| `list_clusters` | List clusters in the workspace |
+| `get_best_cluster` | Get the ID of the best available cluster |
 
 ### File Operations
 

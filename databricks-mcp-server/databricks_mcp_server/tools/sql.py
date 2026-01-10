@@ -9,8 +9,23 @@ from databricks_tools_core.sql import (
     get_table_details as _get_table_details,
     TableStatLevel,
 )
+from databricks_tools_core.auth import get_default_warehouse_id
 
 from ..server import mcp
+
+
+def _resolve_warehouse_id(warehouse_id: Optional[str]) -> Optional[str]:
+    """Resolve warehouse ID using config default or provided value.
+
+    If a default warehouse_id is configured via MCP args, it takes precedence.
+    Otherwise, uses the provided warehouse_id (which may be None for auto-select).
+    """
+    # Config default takes precedence (strict override)
+    default_id = get_default_warehouse_id()
+    if default_id:
+        return default_id
+
+    return warehouse_id
 
 
 @mcp.tool
@@ -24,7 +39,8 @@ def execute_sql(
     """
     Execute a SQL query on a Databricks SQL Warehouse.
 
-    If no warehouse_id is provided, automatically selects the best available warehouse.
+    If no warehouse_id is provided and no default is configured,
+    automatically selects the best available warehouse.
 
     Args:
         sql_query: SQL query to execute
@@ -36,9 +52,11 @@ def execute_sql(
     Returns:
         List of dictionaries, each representing a row with column names as keys.
     """
+    resolved_warehouse_id = _resolve_warehouse_id(warehouse_id)
+
     return _execute_sql(
         sql_query=sql_query,
-        warehouse_id=warehouse_id,
+        warehouse_id=resolved_warehouse_id,
         catalog=catalog,
         schema=schema,
         timeout=timeout,
@@ -71,9 +89,11 @@ def execute_sql_multi(
     Returns:
         Dictionary with results per query and execution summary.
     """
+    resolved_warehouse_id = _resolve_warehouse_id(warehouse_id)
+
     return _execute_sql_multi(
         sql_content=sql_content,
-        warehouse_id=warehouse_id,
+        warehouse_id=resolved_warehouse_id,
         catalog=catalog,
         schema=schema,
         timeout=timeout,
@@ -130,6 +150,8 @@ def get_table_details(
     Returns:
         Dictionary with tables list containing schema and statistics per table.
     """
+    resolved_warehouse_id = _resolve_warehouse_id(warehouse_id)
+
     # Convert string to enum
     level = TableStatLevel[table_stat_level.upper()]
     result = _get_table_details(
@@ -137,7 +159,7 @@ def get_table_details(
         schema=schema,
         table_names=table_names,
         table_stat_level=level,
-        warehouse_id=warehouse_id,
+        warehouse_id=resolved_warehouse_id,
     )
     # Convert to dict for JSON serialization
     return result.model_dump() if hasattr(result, 'model_dump') else result
