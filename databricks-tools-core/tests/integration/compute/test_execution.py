@@ -8,10 +8,13 @@ import tempfile
 import pytest
 from pathlib import Path
 
-from databricks_tools_core.compute import run_python_file_on_databricks
+from databricks_tools_core.compute import (
+    run_python_file_on_databricks,
+    execute_databricks_command,
+)
 
 # Test cluster ID
-CLUSTER_ID = "0709-132523-cnhxf2p6"
+CLUSTER_ID = "0304-162117-qgsi1x04"
 
 
 @pytest.mark.integration
@@ -127,6 +130,57 @@ x = 1 / 0
         assert "not found" in result.error.lower() or "nonexistent" in result.error.lower()
 
 
+@pytest.mark.integration
+class TestExecuteDatabricksCommand:
+    """Tests for execute_databricks_command function."""
+
+    def test_simple_python_command(self):
+        """Should execute a simple Python command and return output."""
+        code = """
+print("Hello from execute_databricks_command!")
+print(2 + 2)
+"""
+        result = execute_databricks_command(
+            cluster_id=CLUSTER_ID,
+            language="python",
+            code=code,
+            timeout=120
+        )
+
+        print(f"\n=== Execute Command Result ===")
+        print(f"Success: {result.success}")
+        print(f"Output: {result.output}")
+        print(f"Error: {result.error}")
+
+        assert result.success, f"Execution failed: {result.error}"
+        assert "Hello from execute_databricks_command!" in result.output
+        assert "4" in result.output
+
+    def test_spark_command(self):
+        """Should execute Spark code via execute_databricks_command."""
+        code = """
+from pyspark.sql import SparkSession
+spark = SparkSession.builder.getOrCreate()
+
+df = spark.range(10)
+print(f"Count: {df.count()}")
+"""
+        result = execute_databricks_command(
+            cluster_id=CLUSTER_ID,
+            language="python",
+            code=code,
+            timeout=120
+        )
+
+        print(f"\n=== Spark Command Result ===")
+        print(f"Success: {result.success}")
+        print(f"Output: {result.output}")
+        print(f"Error: {result.error}")
+
+        assert result.success, f"Spark execution failed: {result.error}"
+        assert "Count: 10" in result.output
+
+
 if __name__ == "__main__":
     # Run tests directly for quick debugging
     test = TestRunPythonFileOnDatabricks()
@@ -163,6 +217,29 @@ if __name__ == "__main__":
     print("="*50)
     try:
         test.test_file_not_found()
+        print("✓ PASSED")
+    except Exception as e:
+        print(f"✗ FAILED: {e}")
+
+    print("\n" + "="*50)
+    print("Running: TestExecuteDatabricksCommand")
+    print("="*50)
+    test_execute = TestExecuteDatabricksCommand()
+
+    print("\n" + "="*50)
+    print("Running: test_simple_python_command")
+    print("="*50)
+    try:
+        test_execute.test_simple_python_command()
+        print("✓ PASSED")
+    except Exception as e:
+        print(f"✗ FAILED: {e}")
+
+    print("\n" + "="*50)
+    print("Running: test_spark_command")
+    print("="*50)
+    try:
+        test_execute.test_spark_command()
         print("✓ PASSED")
     except Exception as e:
         print(f"✗ FAILED: {e}")

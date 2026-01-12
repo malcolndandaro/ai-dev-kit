@@ -14,7 +14,6 @@ from .execution import (
 )
 
 from .cluster import (
-    list_clusters,
     get_best_cluster,
 )
 
@@ -25,6 +24,5 @@ __all__ = [
     "destroy_context",
     "execute_databricks_command",
     "run_python_file_on_databricks",
-    "list_clusters",
     "get_best_cluster",
 ]

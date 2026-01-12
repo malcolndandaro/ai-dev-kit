@@ -4,12 +4,16 @@ from typing import Dict, Any, List, Optional
 from databricks_tools_core.compute import (
     execute_databricks_command as _execute_databricks_command,
     run_python_file_on_databricks as _run_python_file_on_databricks,
-    list_clusters as _list_clusters,
-    get_best_cluster as _get_best_cluster,
+    # get_best_cluster as _get_best_cluster,
 )
 from databricks_tools_core.auth import get_default_cluster_id
 
 from ..server import mcp
+
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("mcp_compute")
 
 
 def _resolve_cluster_id(cluster_id: Optional[str]) -> str:
@@ -20,6 +24,7 @@ def _resolve_cluster_id(cluster_id: Optional[str]) -> str:
     """
     # Config default takes precedence (strict override)
     default_id = get_default_cluster_id()
+    logger.info(f"default_id: {default_id}")
     if default_id:
         return default_id
 
@@ -32,62 +37,35 @@ def _resolve_cluster_id(cluster_id: Optional[str]) -> str:
     )
 
 
-@mcp.tool
-def list_clusters(
-    limit: int = 20,
-    running_only: bool = False,
-    shared_only: bool = False,
-    cluster_id: Optional[str] = None,
-) -> Dict[str, Any]:
-    """
-    List clusters in the workspace with optional filtering, or fetch a specific cluster by ID.
+# @mcp.tool
+# def get_best_cluster(
+#     running_only: bool = True,
+#     name_filter: Optional[str] = None,
+# ) -> Optional[str]:
+#     """
+#     Get the ID of the best available cluster.
 
-    Optimized for large workspaces with early termination.
-    RUNNING clusters are always listed first.
+#     Prioritizes shared/standard access mode clusters (not single-user assigned).
+#     Optimized for large workspaces with early termination.
 
-    Args:
-        limit: Maximum number of clusters to return (default: 20)
-        running_only: If True, only return RUNNING clusters (faster in large workspaces)
-        shared_only: If True, only return shared/standard access mode clusters (not single-user)
-        cluster_id: If provided, fetch only this specific cluster by ID (ignores other filters)
+#     Priority:
+#     1. Running shared-access cluster matching name_filter exactly
+#     2. Running shared-access cluster with name_filter in name
+#     3. Any running shared-access cluster
+#     4. Running single-user cluster (fallback)
+#     5. Stopped clusters (only if running_only=False)
 
-    Returns:
-        Dictionary with 'result' containing list of cluster info dicts including:
-        - id, name, state, spark_version, node_type_id
-        - single_user_name (None for shared clusters)
-        - data_security_mode
-    """
-    return {"result": _list_clusters(limit=limit, running_only=running_only, shared_only=shared_only, cluster_id=cluster_id)}
+#     Args:
+#         running_only: If True (default), only consider RUNNING clusters
+#         name_filter: Custom name to search for in cluster names (case-insensitive).
+#                     Use this to find a specific cluster by name.
+#                     If None, defaults to searching for 'shared'.
 
-
-@mcp.tool
-def get_best_cluster(
-    running_only: bool = True,
-    name_filter: Optional[str] = None,
-) -> Optional[str]:
-    """
-    Get the ID of the best available cluster.
-
-    Prioritizes shared/standard access mode clusters (not single-user assigned).
-    Optimized for large workspaces with early termination.
-
-    Priority:
-    1. Running shared-access cluster matching name_filter exactly
-    2. Running shared-access cluster with name_filter in name
-    3. Any running shared-access cluster
-    4. Running single-user cluster (fallback)
-    5. Stopped clusters (only if running_only=False)
-
-    Args:
-        running_only: If True (default), only consider RUNNING clusters
-        name_filter: Custom name to search for in cluster names (case-insensitive).
-                    Use this to find a specific cluster by name.
-                    If None, defaults to searching for 'shared'.
-
-    Returns:
-        Cluster ID string, or None if no clusters available.
-    """
-    return _get_best_cluster(running_only=running_only, name_filter=name_filter)
+#     Returns:
+#         Cluster ID string, or None if no clusters available.
+#     """
+#     result = _get_best_cluster(running_only=running_only, name_filter=name_filter)
+#     return result.get("cluster_id")
 
 
 @mcp.tool

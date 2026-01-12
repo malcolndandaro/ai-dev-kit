@@ -108,6 +108,104 @@ Claude now has both:
 - **Skills** (knowledge) - patterns and best practices in `.claude/skills/`
 - **MCP Tools** (actions) - Databricks operations via the MCP server
 
+## Manual Setup from Another Project
+
+If you're setting up the MCP server from a different project (not in the `ai-dev-kit` repository), follow these steps:
+
+### Option 1: Install from Git (Recommended)
+
+Install both packages directly from the GitHub repository:
+
+```bash
+# Install databricks-tools-core
+uv pip install git+https://github.com/databricks-solutions/ai-dev-kit.git#subdirectory=databricks-tools-core
+
+# Install databricks-mcp-server
+uv pip install git+https://github.com/databricks-solutions/ai-dev-kit.git#subdirectory=databricks-mcp-server
+```
+
+### Option 2: Clone and Install Locally
+
+If you want to use editable installs for development:
+
+```bash
+# Clone the repository
+git clone https://github.com/databricks-solutions/ai-dev-kit.git
+cd ai-dev-kit
+
+# Install both packages in editable mode
+uv pip install -e databricks-tools-core
+uv pip install -e databricks-mcp-server
+```
+
+### Option 3: Use the Setup Script
+
+If you've cloned the repository, use the provided setup script:
+
+```bash
+cd databricks-mcp-server
+bash setup.sh
+```
+
+The script will:
+- Check for `uv` (install from https://astral.sh/uv/install.sh if needed)
+- Create a virtual environment
+- Install both packages in editable mode
+- Verify the installation
+
+### Configure MCP Server
+
+After installation, add the MCP server config to your default location or a project specific location, such as `mcp.json` for Claude Code or `.cursor/mcp.json` for Cursor:
+
+```json
+{
+  "mcpServers": {
+    "databricks": {
+      "command": "/absolute/path/to/databricks-mcp-server/.venv/bin/python",
+      "args": ["/absolute/path/to/databricks-mcp-server/run_server.py"]
+    }
+  }
+}
+```
+
+### Configure Authentication
+
+Set up Databricks authentication using environment variables or a config profile:
+
+```bash
+# Option 1: Environment variables
+export DATABRICKS_HOST="https://your-workspace.cloud.databricks.com"
+export DATABRICKS_TOKEN="your-token"
+
+# Option 2: Use a profile from ~/.databrickscfg
+export DATABRICKS_CONFIG_PROFILE="your-profile"
+```
+
+Or pass authentication via command arguments in `mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "databricks": {
+      "command": "/absolute/path/to/databricks-mcp-server/.venv/bin/python",
+      "args": ["/absolute/path/to/databricks-mcp-server/run_server.py",
+        "--profile", "my-profile",
+        "--cluster-id", "0123-456789-abcdef",
+        "--warehouse-id", "abc123def456"
+      ]
+    }
+  }
+}
+```
+
+### Verify Installation
+
+Test that the server can be imported:
+
+```bash
+python -c "import databricks_mcp_server; print('✓ MCP server installed')"
+```
+
 ## Available Tools
 
 ### SQL Operations
