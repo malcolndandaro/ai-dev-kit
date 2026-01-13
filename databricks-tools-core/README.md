@@ -11,6 +11,7 @@ The `databricks-tools-core` package provides reusable, opinionated functions for
 | Module | Description |
 |--------|-------------|
 | **sql/** | SQL execution, warehouse management, and table statistics |
+| **jobs/** | Job management and run operations (serverless by default) |
 | **unity_catalog/** | Unity Catalog operations (catalogs, schemas, tables) |
 | **compute/** | Compute and execution context operations |
 | **spark_declarative_pipelines/** | Spark Declarative Pipeline management |
@@ -210,6 +211,79 @@ result = get_table_details(
 | `SIMPLE` | Basic stats (samples, min/max, cardinality) | Default, cached |
 | `DETAILED` | Full stats (histograms, percentiles, value counts) | Data profiling |
 
+### Jobs
+
+Create, manage, and run Databricks jobs. Uses serverless compute by default for optimal performance and cost.
+
+```python
+from databricks_tools_core.jobs import (
+    create_job, get_job, list_jobs, update_job, delete_job,
+    run_job_now, get_run, list_runs, cancel_run, wait_for_run,
+)
+
+# Create a job with notebook task (serverless by default)
+tasks = [
+    {
+        "task_key": "etl_task",
+        "notebook_task": {
+            "notebook_path": "/Workspace/ETL/process_data",
+            "source": "WORKSPACE",
+        },
+    }
+]
+job = create_job(name="my_etl_job", tasks=tasks)
+print(f"Created job: {job['job_id']}")
+
+# Run the job immediately
+run_id = run_job_now(job_id=job["job_id"])
+
+# Wait for completion (with timeout)
+result = wait_for_run(run_id=run_id, timeout=3600)
+if result.success:
+    print(f"Job completed in {result.duration_seconds}s")
+else:
+    print(f"Job failed: {result.error_message}")
+
+# List recent runs
+runs = list_runs(job_id=job["job_id"], limit=10)
+
+# Cancel a running job
+cancel_run(run_id=run_id)
+```
+
+**Job Functions:**
+
+| Function | Description |
+|----------|-------------|
+| `create_job()` | Create a new job with tasks and settings |
+| `get_job()` | Get detailed job configuration |
+| `list_jobs()` | List jobs with optional name filter |
+| `find_job_by_name()` | Find job by exact name, returns job ID |
+| `update_job()` | Update job configuration |
+| `delete_job()` | Delete a job |
+
+**Run Functions:**
+
+| Function | Description |
+|----------|-------------|
+| `run_job_now()` | Trigger a job run, returns run ID |
+| `get_run()` | Get run status and details |
+| `get_run_output()` | Get run output and logs |
+| `list_runs()` | List runs with filters |
+| `cancel_run()` | Cancel a running job |
+| `wait_for_run()` | Wait for run completion, returns `JobRunResult` |
+
+**JobRunResult fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `success` | bool | True if run completed successfully |
+| `lifecycle_state` | str | PENDING, RUNNING, TERMINATING, TERMINATED, SKIPPED, INTERNAL_ERROR |
+| `result_state` | str | SUCCESS, FAILED, TIMEDOUT, CANCELED |
+| `duration_seconds` | float | Total execution time |
+| `error_message` | str | Error message if failed |
+| `run_page_url` | str | Link to run in Databricks UI |
+
 ### Unity Catalog Operations
 
 ```python
@@ -256,6 +330,10 @@ databricks-tools-core/
 │   │       ├── dependency_analyzer.py # SQL dependency analysis
 │   │       ├── table_stats_collector.py # Stats collection with caching
 │   │       └── models.py             # Pydantic models
+│   ├── jobs/                         # Job operations
+│   │   ├── jobs.py                   # create_job, get_job, list_jobs, etc.
+│   │   ├── runs.py                   # run_job_now, get_run, wait_for_run, etc.
+│   │   └── models.py                 # JobRunResult, JobError, enums
 │   ├── unity_catalog/                # Unity Catalog operations
 │   ├── compute/                      # Compute operations
 │   ├── spark_declarative_pipelines/  # SDP operations
@@ -307,10 +385,14 @@ tests/
 │   ├── warehouse_id               # Gets best running warehouse
 │   └── test_tables                # Creates sample tables with data
 └── integration/
-    └── sql/
-        ├── test_warehouse.py      # Warehouse listing tests
-        ├── test_sql.py            # SQL execution tests
-        └── test_table_stats.py    # Table statistics tests
+    ├── sql/
+    │   ├── test_warehouse.py      # Warehouse listing tests
+    │   ├── test_sql.py            # SQL execution tests
+    │   └── test_table_stats.py    # Table statistics tests
+    └── jobs/
+        ├── conftest.py            # Jobs-specific fixtures (test notebook, cleanup)
+        ├── test_jobs.py           # Job CRUD tests
+        └── test_runs.py           # Run operation tests
 ```
 
 ### Test Coverage
@@ -320,6 +402,8 @@ tests/
 | `test_warehouse.py` | `list_warehouses`, `get_best_warehouse` |
 | `test_sql.py` | `execute_sql`, `execute_sql_multi`, error handling, parallel execution |
 | `test_table_stats.py` | `get_table_details`, all stat levels, glob patterns, caching |
+| `test_jobs.py` | `list_jobs`, `find_job_by_name`, `create_job`, `get_job`, `update_job`, `delete_job` |
+| `test_runs.py` | `run_job_now`, `get_run`, `cancel_run`, `list_runs`, `wait_for_run` |
 
 ### Test Fixtures
 

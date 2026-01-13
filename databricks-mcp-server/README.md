@@ -102,6 +102,23 @@ Claude now has both:
 | `upload_folder` | Upload a local folder to Databricks workspace (parallel) |
 | `upload_file` | Upload a single file to workspace |
 
+### Jobs
+
+| Tool | Description |
+|------|-------------|
+| `create_job` | Create a new job with tasks (serverless by default) |
+| `get_job` | Get detailed job configuration |
+| `list_jobs` | List jobs with optional name filter |
+| `find_job_by_name` | Find job by exact name, returns job ID |
+| `update_job` | Update job configuration |
+| `delete_job` | Delete a job |
+| `run_job_now` | Trigger a job run, returns run ID |
+| `get_run` | Get run status and details |
+| `get_run_output` | Get run output and logs |
+| `list_runs` | List runs with filters |
+| `cancel_run` | Cancel a running job |
+| `wait_for_run` | Wait for run completion |
+
 ### Spark Declarative Pipelines (SDP)
 
 | Tool | Description |
@@ -135,15 +152,16 @@ Claude now has both:
 │  tools/sql.py ──────┐                                       │
 │  tools/compute.py ──┼──► @mcp.tool decorators               │
 │  tools/file.py ─────┤                                       │
+│  tools/jobs.py ─────┤                                       │
 │  tools/pipelines.py ┘                                       │
 └──────────────────────────────┬──────────────────────────────┘
                                │ Python imports
                                ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                   databricks-tools-core                        │
+│                   databricks-tools-core                      │
 │                                                              │
-│  sql/         compute/       file/         pipelines/       │
-│  └── execute  └── run_code   └── upload    └── create/run   │
+│  sql/         compute/       jobs/         pipelines/       │
+│  └── execute  └── run_code   └── run/wait  └── create/run   │
 └──────────────────────────────┬──────────────────────────────┘
                                │ Databricks SDK
                                ▼

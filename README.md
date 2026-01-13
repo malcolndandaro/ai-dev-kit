@@ -53,6 +53,7 @@ The AI Dev Kit provides everything you need to build on Databricks using AI assi
 │   • execute_sql, execute_sql_multi                                          │
 │   • get_table_details, list_warehouses                                      │
 │   • run_python_file_on_databricks                                           │
+│   • create_job, run_job_now, wait_for_run (Jobs)                            │
 │   • ka_create, mas_create, genie_create (Agent Bricks)                      │
 │   • create_pipeline, start_pipeline (SDP)                                   │
 │   • ... and more                                                            │
@@ -68,6 +69,7 @@ The AI Dev Kit provides everything you need to build on Databricks using AI assi
 │   Pure Python library with high-level Databricks functions                  │
 │                                                                              │
 │   ├── sql/                    SQL execution, warehouses, table stats        │
+│   ├── jobs/                   Job management and run operations             │
 │   ├── unity_catalog/          Catalogs, schemas, tables                     │
 │   ├── compute/                Execution contexts, run code on clusters      │
 │   ├── spark_declarative_pipelines/   DLT/SDP pipeline management            │
