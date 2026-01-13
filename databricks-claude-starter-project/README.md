@@ -1,6 +1,6 @@
-# Databricks Claude Test Project
+# Databricks Claude Code / Cursor Starter Project
 
-A blank project for testing Claude Code with Databricks MCP tools. Use this to experiment with the MCP server integration and test tools before using them in a real project.
+A blank project for testing Claude Code or Cursor with Databricks AI Dev Kit. Use this as a template to create a new AI coding project focused on Databricks. It can also be used to experiment with the skils, MCP server integration, and test tools before using them in a real project.
 
 ## Prerequisites
 
@@ -11,20 +11,18 @@ A blank project for testing Claude Code with Databricks MCP tools. Use this to e
 
 ### 1. Setup
 
+Make scripts executable and install dependencies.
 ```bash
-# Make scripts executable
 chmod +x setup.sh cleanup.sh
-
-# Install dependencies, skills, and configure MCP server
 ./setup.sh
 ```
 
 This will:
-- Check for `uv` and `claude` CLI installation
+- Check for `uv` installation
 - Install dependencies for `databricks-tools-core` and `databricks-mcp-server`
 - Install Databricks skills to `.claude/skills/`
-- Register the Databricks MCP server with Claude Code (using `claude mcp add`)
-- Create `CLAUDE.md` with project context
+- Setup MCP server config for this project in `.mcp.json` (Claude Code) and `.cursor/mcp.json` (Cursor)
+- Create `CLAUDE.md` and `AGENTS.md` with project context
 
 ### 2. Configure Databricks Credentials
 
@@ -120,14 +118,14 @@ Once configured, Claude has access to these Databricks tools:
 
 The setup script installs these skills to `.claude/skills/`:
 
-- **sdp** - Spark Declarative Pipelines (SDP/DLT)
+- **spark-declarative-pipelines** - Spark Declarative Pipelines (SDP/DLT)
 - **dabs-writer** - Databricks Asset Bundles
 - **databricks-python-sdk** - Python SDK patterns
 - **synthetic-data-generation** - Test data generation
 
 Use skills by asking Claude:
 ```
-Load the sdp skill and help me create a pipeline
+Load the spark-declarative-pipelines skill and help me create a pipeline
 ```
 
 ## Cleanup
@@ -176,7 +174,7 @@ databricks-claude-test-project/
 ├── .claude/
 │   ├── mcp.json           # MCP server configuration
 │   └── skills/            # Installed Databricks skills
-│       ├── sdp/
+│       ├── spark-declarative-pipelines/
 │       ├── dabs-writer/
 │       └── ...
 ├── .gitignore             # Ignores test artifacts

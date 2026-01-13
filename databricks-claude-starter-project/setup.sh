@@ -73,30 +73,55 @@ cd "$SCRIPT_DIR"
 "$SCRIPT_DIR/$SKILLS_DIR/install_skills.sh" "$@"
 
 # Check for claude CLI
-if ! command -v claude &> /dev/null; then
-    echo ""
-    echo "Warning: 'claude' CLI is not installed."
-    echo "Install it from: https://claude.ai/code"
-    echo "Skipping MCP server registration."
-else
-    # Register MCP server with Claude Code
-    echo ""
-    echo "Registering Databricks MCP server with Claude Code..."
-    cd "$SCRIPT_DIR"
+# if ! command -v claude &> /dev/null; then
+#     echo ""
+#     echo "Warning: 'claude' CLI is not installed."
+#     echo "Install it from: https://claude.ai/code"
+#     echo "Skipping MCP server registration."
+# else
+#     # Register MCP server with Claude Code
+#     echo ""
+#     echo "Registering Databricks MCP server with Claude Code..."
+#     cd "$SCRIPT_DIR"
 
-    # Remove existing server if present (to update config)
-    claude mcp remove databricks 2>/dev/null || true
+#     # Remove existing server if present (to update config)
+#     claude mcp remove databricks 2>/dev/null || true
 
-    # Add the MCP server using claude mcp add-json
-    # Use the runner script to avoid Python -m module reimport issues
-    MCP_RUNNER="$MCP_SERVER_ABS/run_server.py"
-    if [ ! -f "$MCP_RUNNER" ]; then
-        echo "Error: MCP runner script not found at $MCP_RUNNER"
-        exit 1
-    fi
-    claude mcp add-json databricks "{\"command\":\"$MCP_PYTHON\",\"args\":[\"$MCP_RUNNER\"]}"
-    echo "✓ MCP server registered"
-fi
+#     # Add the MCP server using claude mcp add-json
+#     # Use the runner script to avoid Python -m module reimport issues
+#     MCP_RUNNER="$MCP_SERVER_ABS/run_server.py"
+#     if [ ! -f "$MCP_RUNNER" ]; then
+#         echo "Error: MCP runner script not found at $MCP_RUNNER"
+#         exit 1
+#     fi
+#     claude mcp add-json databricks "{\"command\":\"$MCP_PYTHON\",\"args\":[\"$MCP_RUNNER\"]}"
+#     echo "✓ MCP server registered"
+# fi
+
+# Populate .mcp.json (for Claude Code) and .cursor/mcp.json (for Cursor) with the MCP server configuration
+# Build development-purpose mcpServers configuration for direct python runner using this environment
+
+MCP_DEV_CONFIG=$(cat <<EOF
+{
+  "mcpServers": {
+    "databricks-dev": {
+      "command": "$MCP_SERVER_ABS/.venv/bin/python",
+      "args": ["$MCP_SERVER_ABS/run_server.py"]
+    }
+  }
+}
+EOF
+)
+
+echo ""
+echo "Creating .mcp.json..."
+echo "$MCP_DEV_CONFIG" > "$SCRIPT_DIR/.mcp.json"
+echo "Created .mcp.json"
+
+echo ""
+echo "Creating .cursor/mcp.json..."
+echo "$MCP_DEV_CONFIG" > "$SCRIPT_DIR/.cursor/mcp.json"
+echo "Created .cursor/mcp.json"
 
 # Create/reset CLAUDE.md
 echo ""
@@ -113,7 +138,7 @@ You have access to Databricks MCP tools prefixed with `mcp__databricks__`. Use `
 ## Skills
 
 Load skills for detailed guidance:
-- `skill: "sdp"` - Spark Declarative Pipelines
+- `skill: "spark-declarative-pipelines"` - Spark Declarative Pipelines
 - `skill: "databricks-python-sdk"` - Python SDK patterns
 - `skill: "synthetic-data-generation"` - Test data generation
 - `skill: "dabs-writer"` - Databricks Asset Bundles
@@ -137,7 +162,7 @@ echo "========================================"
 echo ""
 echo "Next steps:"
 echo "  1. Make sure DATABRICKS_HOST and DATABRICKS_TOKEN are set"
-echo "  2. Run: claude"
+echo "  2. Run: claude (or open Cursor IDE)"
 echo "  3. Test the MCP tools with commands like:"
 echo "     - 'List my SQL warehouses'"
 echo "     - 'Run a simple SQL query'"
