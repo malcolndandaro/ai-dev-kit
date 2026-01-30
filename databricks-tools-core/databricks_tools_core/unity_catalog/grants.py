@@ -222,7 +222,7 @@ def get_effective_grants(
                 "principal": a.principal,
                 "privileges": [
                     {"privilege": p.privilege.value if p.privilege else None, "inherited_from_name": p.inherited_from_name, "inherited_from_type": p.inherited_from_type.value if p.inherited_from_type else None}
-                    for p in (a.all_privileges or [])
+                    for p in (a.privileges or [])
                 ],
             }
             for a in (result.privilege_assignments or [])
