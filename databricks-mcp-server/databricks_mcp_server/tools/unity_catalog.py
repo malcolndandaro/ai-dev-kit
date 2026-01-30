@@ -2,8 +2,8 @@
 Unity Catalog MCP Tools
 
 Consolidated MCP tools for Unity Catalog operations.
-10 tools covering: objects, tables, grants, storage, connections,
-tags, security policies, system tables, monitors, and sharing.
+9 tools covering: objects, tables, grants, storage, connections,
+tags, security policies, monitors, and sharing.
 """
 from typing import Any, Dict, List
 
@@ -75,8 +75,6 @@ from databricks_tools_core.unity_catalog import (
     drop_row_filter as _drop_row_filter,
     set_column_mask as _set_column_mask,
     drop_column_mask as _drop_column_mask,
-    # System tables
-    query_system_table as _query_system_table,
     # Monitors
     create_monitor as _create_monitor,
     get_monitor as _get_monitor,
@@ -673,66 +671,7 @@ def manage_uc_security_policies(
 
 
 # =============================================================================
-# Tool 8: query_uc_system_tables
-# =============================================================================
-
-
-@mcp.tool
-def query_uc_system_tables(
-    system_table: str,
-    days_back: int = 7,
-    limit: int = 100,
-    table_name: str = None,
-    user_email: str = None,
-    action_name: str = None,
-    job_id: str = None,
-    pipeline_id: str = None,
-    warehouse_id: str = None,
-    custom_where: str = None,
-    custom_columns: str = None,
-) -> Dict[str, Any]:
-    """
-    Query Unity Catalog system tables for observability and governance.
-
-    Automatically applies date partition filters for performance.
-
-    Args:
-        system_table: Which system table to query:
-            - "audit": Access audit logs (who accessed what, permission changes)
-            - "table_lineage": Table-level data lineage
-            - "column_lineage": Column-level data lineage
-            - "billing_usage": DBU consumption and costs
-            - "billing_prices": SKU list prices
-            - "clusters": Cluster configurations
-            - "warehouse_events": SQL warehouse scaling events
-            - "jobs": Job definitions
-            - "job_runs": Job execution history and performance
-            - "pipeline_events": DLT/SDP pipeline events
-            - "query_history": SQL query execution history
-        days_back: Number of days to look back (default: 7)
-        limit: Maximum rows to return (default: 100)
-        table_name: Filter by table name (for lineage, audit)
-        user_email: Filter by user email (for audit, query_history)
-        action_name: Filter by action name (for audit, e.g., "getTable", "createTable")
-        job_id: Filter by job ID (for job_runs)
-        pipeline_id: Filter by pipeline ID (for pipeline_events)
-        warehouse_id: SQL warehouse ID for query execution
-        custom_where: Additional WHERE clause (appended with AND)
-        custom_columns: Custom SELECT columns (default: *)
-
-    Returns:
-        Dict with "data" (results), "row_count", "sql" (executed query), "system_table"
-    """
-    return _query_system_table(
-        system_table=system_table, days_back=days_back, limit=limit,
-        table_name=table_name, user_email=user_email, action_name=action_name,
-        job_id=job_id, pipeline_id=pipeline_id, warehouse_id=warehouse_id,
-        custom_where=custom_where, custom_columns=custom_columns,
-    )
-
-
-# =============================================================================
-# Tool 9: manage_uc_monitors
+# Tool 8: manage_uc_monitors
 # =============================================================================
 
 
@@ -784,7 +723,7 @@ def manage_uc_monitors(
 
 
 # =============================================================================
-# Tool 10: manage_uc_sharing
+# Tool 9: manage_uc_sharing
 # =============================================================================
 
 

@@ -2,7 +2,7 @@
 Unity Catalog Operations
 
 Functions for managing Unity Catalog objects, permissions, storage,
-governance metadata, system tables, monitors, and data sharing.
+governance metadata, monitors, and data sharing.
 """
 
 # Catalogs
@@ -102,11 +102,6 @@ from .security_policies import (
     drop_column_mask,
 )
 
-# System tables
-from .system_tables import (
-    query_system_table,
-)
-
 # Quality monitors
 from .monitors import (
     create_monitor,
@@ -163,8 +158,6 @@ __all__ = [
     # Security policies
     "create_security_function", "set_row_filter", "drop_row_filter",
     "set_column_mask", "drop_column_mask",
-    # System tables
-    "query_system_table",
     # Quality monitors
     "create_monitor", "get_monitor", "run_monitor_refresh",
     "list_monitor_refreshes", "delete_monitor",
