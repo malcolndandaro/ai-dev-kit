@@ -6,25 +6,20 @@ are injected via CLIContext at runtime by the skill handler.
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any, Optional, List, Callable, Literal
+from typing import Dict, Any, Optional, List, Literal
 import yaml
 
 from ..grp.executor import (
     DatabricksExecutionConfig,
-    CodeBlocksExecutionResult,
     execute_code_blocks,
     execute_code_blocks_on_databricks,
-    extract_code_blocks,
     MCPExecuteCommand,
     MCPExecuteSQL,
     MCPGetBestWarehouse,
     MCPGetBestCluster,
 )
 from ..grp.pipeline import (
-    GRPCandidate,
-    GRPResult,
     generate_candidate,
-    save_candidates,
     promote_approved,
 )
 from ..grp.reviewer import (
@@ -38,7 +33,7 @@ from ..fixtures import (
     teardown_fixtures,
 )
 from ..fixtures.setup import MCPUploadFile
-from ..dataset import YAMLDatasetSource, EvalRecord
+from ..dataset import YAMLDatasetSource
 
 
 @dataclass
@@ -1107,7 +1102,7 @@ def trace_eval(
         - violations: List of any violations found
     """
     from ..trace.parser import parse_and_compute_metrics
-    from ..trace.mlflow_integration import get_trace_from_mlflow, get_trace_by_id, get_trace_metrics
+    from ..trace.mlflow_integration import get_trace_from_mlflow, get_trace_by_id
     from ..scorers.trace import get_trace_scorers
 
     # Validate inputs - must provide exactly one trace source
@@ -1372,11 +1367,10 @@ def review(
 
     if batch:
         # Batch approve mode
-        if filter_success:
-            # Only approve candidates with execution_success=True
-            filter_fn = lambda c: c.get("execution_success", False)
-        else:
-            filter_fn = None
+        def success_filter(c):
+            return c.get("execution_success", False)
+
+        filter_fn = success_filter if filter_success else None
 
         approved = batch_approve(candidates_path, filter_fn=filter_fn)
 
