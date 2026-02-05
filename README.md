@@ -8,7 +8,7 @@
 
 ## Overview
 
-Vibecoding on Databricks just got a whole lot better. The **AI Dev Kit** gives your AI coding assistant (Claude Code, Cursor, Windsurf, etc.) the trusted sources it needs to build faster and smarter on Databricks.
+AI-Driven Development (vibe coding) on Databricks just got a whole lot better. The **AI Dev Kit** gives your AI coding assistant (Claude Code, Cursor, Windsurf, etc.) the trusted sources it needs to build faster and smarter on Databricks.
 
 <p align="center">
   <img src="databricks-tools-core/docs/architecture.svg" alt="Architecture" width="700">
@@ -35,7 +35,8 @@ Vibecoding on Databricks just got a whole lot better. The **AI Dev Kit** gives y
 
 | Adventure | Best For | Start Here |
 |-----------|----------|------------|
-| :star: [**Starter Kit**](#starter-kit) | **Start here!** Claude Code + full Databricks integration | `ai-dev-project/` |
+| :star: [**Install ai-dev-kit**](#install-in-existing-project) | **Start here!** Follow quick install instructions to add to your existing project folder | Quick Start (install)
+| [**Starter Project**](#starter-kit) | Starter project for Claude Code + full Databricks integration | `ai-dev-project/` |
 | [**Visual Builder**](#visual-builder-app) | Web-based UI for Databricks development | `databricks-builder-app/` |
 | [**Skills Only**](#skills-only) | Teaching your AI Databricks patterns (no actions) | Install skills |
 | [**MCP Tools Only**](#mcp-tools-only) | Just executable actions (no guidance) | Register MCP server |
@@ -47,18 +48,33 @@ Vibecoding on Databricks just got a whole lot better. The **AI Dev Kit** gives y
 
 ### Prerequisites
 
-```bash
-# Set your Databricks credentials
-export DATABRICKS_HOST="https://your-workspace.cloud.databricks.com"
-export DATABRICKS_TOKEN="your-token"
+- [uv](https://github.com/astral-sh/uv) - Python package manager
+- [Databricks CLI](https://docs.databricks.com/aws/en/dev-tools/cli/) - Command line interface for Databricks
+- AI coding environment
+  - [Claude Code](https://claude.ai/code)
+  - [Cursor](https://cursor.com)
 
-# Or use a profile from ~/.databrickscfg
-export DATABRICKS_CONFIG_PROFILE="your-profile"
-```
+
+### Install in existing project
+By default this will install at a project level rather than a user level. This is often a good fit, but requires you to run your client from the exact directory that was used for the install.  
+_Note: Project configuration files can be re-used in other projects. You find these configs under .claude or .cursor_
+
+#### Mac / Linux
+1. Open terminal
+2. Navigate to a local project directory (the root folder you will open with Cursor or Claude Code)
+3. Run `curl -sL https://raw.githubusercontent.com/databricks-solutions/ai-dev-kit/main/install.sh | bash`
+4. Respond to interactive prompts and follow next steps. 
+   - Note: Cursor and Co-pilot require updating settings manually after install.
+
+#### Windows (Powershell)
+1. Open powershell terminal (requires `git` installed)
+2. Navigate to a local project directory (the root folder you will open with Cursor or Claude Code)
+3. Run `irm https://raw.githubusercontent.com/databricks-solutions/ai-dev-kit/main/install.ps1 | iex`
+
 
 ### Starter Kit
 
-The fastest way to get started with Claude Code + Databricks:
+If you prefer to clone the repo and start building, use the starter project.:
 
 ```bash
 git clone https://github.com/databricks-solutions/ai-dev-kit.git
