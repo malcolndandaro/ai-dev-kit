@@ -168,9 +168,16 @@ def manage_uc_objects(
 
     if otype == "catalog":
         if action == "create":
-            return _to_dict(
+            result = _to_dict(
                 _create_catalog(name=name, comment=comment, storage_root=storage_root, properties=properties)
             )
+            try:
+                from ..manifest import track_resource
+
+                track_resource(resource_type="catalog", name=name, resource_id=result.get("name", name))
+            except Exception:
+                pass
+            return result
         elif action == "get":
             return _to_dict(_get_catalog(catalog_name=full_name or name))
         elif action == "list":
@@ -191,7 +198,15 @@ def manage_uc_objects(
 
     elif otype == "schema":
         if action == "create":
-            return _to_dict(_create_schema(catalog_name=catalog_name, schema_name=name, comment=comment))
+            result = _to_dict(_create_schema(catalog_name=catalog_name, schema_name=name, comment=comment))
+            try:
+                from ..manifest import track_resource
+
+                full_schema = result.get("full_name") or f"{catalog_name}.{name}"
+                track_resource(resource_type="schema", name=full_schema, resource_id=full_schema)
+            except Exception:
+                pass
+            return result
         elif action == "get":
             return _to_dict(_get_schema(full_schema_name=full_name))
         elif action == "list":
@@ -204,7 +219,7 @@ def manage_uc_objects(
 
     elif otype == "volume":
         if action == "create":
-            return _to_dict(
+            result = _to_dict(
                 _create_volume(
                     catalog_name=catalog_name,
                     schema_name=schema_name,
@@ -214,6 +229,14 @@ def manage_uc_objects(
                     storage_location=storage_location,
                 )
             )
+            try:
+                from ..manifest import track_resource
+
+                full_vol = result.get("full_name") or f"{catalog_name}.{schema_name}.{name}"
+                track_resource(resource_type="volume", name=full_vol, resource_id=full_vol)
+            except Exception:
+                pass
+            return result
         elif action == "get":
             return _to_dict(_get_volume(full_volume_name=full_name))
         elif action == "list":

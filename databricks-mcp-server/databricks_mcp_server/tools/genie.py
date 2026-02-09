@@ -159,13 +159,28 @@ def create_or_update_genie(
             if sample_questions and space_id:
                 manager.genie_add_sample_questions_batch(space_id, sample_questions)
 
-    return {
+    response = {
         "space_id": space_id,
         "display_name": display_name,
         "operation": operation,
         "warehouse_id": warehouse_id,
         "table_count": len(table_identifiers),
     }
+
+    # Track resource on successful create/update
+    try:
+        if space_id:
+            from ..manifest import track_resource
+
+            track_resource(
+                resource_type="genie_space",
+                name=display_name,
+                resource_id=space_id,
+            )
+    except Exception:
+        pass  # best-effort tracking
+
+    return response
 
 
 @mcp.tool

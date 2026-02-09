@@ -143,13 +143,29 @@ def create_or_update_dashboard(
         - published: Whether dashboard was published
         - error: Error message if failed
     """
-    return _create_or_update_dashboard(
+    result = _create_or_update_dashboard(
         display_name=display_name,
         parent_path=parent_path,
         serialized_dashboard=serialized_dashboard,
         warehouse_id=warehouse_id,
         publish=publish,
     )
+
+    # Track resource on successful create/update
+    try:
+        if result.get("success") and result.get("dashboard_id"):
+            from ..manifest import track_resource
+
+            track_resource(
+                resource_type="dashboard",
+                name=display_name,
+                resource_id=result["dashboard_id"],
+                url=result.get("url"),
+            )
+    except Exception:
+        pass  # best-effort tracking
+
+    return result
 
 
 # ============================================================================

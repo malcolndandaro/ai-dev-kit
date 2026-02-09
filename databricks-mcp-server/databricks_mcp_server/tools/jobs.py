@@ -141,7 +141,7 @@ def create_job(
         >>> job = create_job(name="my_etl_job", tasks=tasks)
         >>> print(job["job_id"])
     """
-    return _create_job(
+    result = _create_job(
         name=name,
         tasks=tasks,
         job_clusters=job_clusters,
@@ -160,6 +160,22 @@ def create_job(
         health=health,
         deployment=deployment,
     )
+
+    # Track resource on successful create
+    try:
+        job_id = result.get("job_id") if isinstance(result, dict) else None
+        if job_id:
+            from ..manifest import track_resource
+
+            track_resource(
+                resource_type="job",
+                name=name,
+                resource_id=str(job_id),
+            )
+    except Exception:
+        pass  # best-effort tracking
+
+    return result
 
 
 @mcp.tool

@@ -51,6 +51,20 @@ def create_pipeline(
         workspace_file_paths=workspace_file_paths,
         extra_settings=extra_settings,
     )
+
+    # Track resource on successful create
+    try:
+        if result.pipeline_id:
+            from ..manifest import track_resource
+
+            track_resource(
+                resource_type="pipeline",
+                name=name,
+                resource_id=result.pipeline_id,
+            )
+    except Exception:
+        pass  # best-effort tracking
+
     return {"pipeline_id": result.pipeline_id}
 
 
@@ -294,6 +308,22 @@ def create_or_update_pipeline(
         timeout=timeout,
         extra_settings=extra_settings,
     )
+
+    # Track resource on successful create/update
+    try:
+        result_dict = result.to_dict()
+        pipeline_id = result_dict.get("pipeline_id")
+        if pipeline_id:
+            from ..manifest import track_resource
+
+            track_resource(
+                resource_type="pipeline",
+                name=name,
+                resource_id=pipeline_id,
+            )
+    except Exception:
+        pass  # best-effort tracking
+
     return result.to_dict()
 
 

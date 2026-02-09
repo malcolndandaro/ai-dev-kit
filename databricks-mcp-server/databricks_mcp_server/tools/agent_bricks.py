@@ -131,6 +131,19 @@ def create_or_update_ka(
                 queue.enqueue(response_tile_id, manager, examples, tile_type="KA")
                 response["examples_queued"] = len(examples)
 
+    # Track resource on successful create/update
+    try:
+        if response_tile_id:
+            from ..manifest import track_resource
+
+            track_resource(
+                resource_type="knowledge_assistant",
+                name=response.get("name", name),
+                resource_id=response_tile_id,
+            )
+    except Exception:
+        pass  # best-effort tracking
+
     return response
 
 
@@ -456,6 +469,20 @@ def create_or_update_mas(
             queue = get_tile_example_queue()
             queue.enqueue(response["tile_id"], manager, examples, tile_type="MAS")
             response["examples_queued"] = len(examples)
+
+    # Track resource on successful create/update
+    try:
+        mas_tile_id = response.get("tile_id")
+        if mas_tile_id:
+            from ..manifest import track_resource
+
+            track_resource(
+                resource_type="multi_agent_supervisor",
+                name=response.get("name", name),
+                resource_id=mas_tile_id,
+            )
+    except Exception:
+        pass  # best-effort tracking
 
     return response
 
