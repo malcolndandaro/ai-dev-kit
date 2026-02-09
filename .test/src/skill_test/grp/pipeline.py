@@ -1,4 +1,5 @@
 """Generate-Review-Promote pipeline for ground truth creation."""
+
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -12,6 +13,7 @@ from .diagnosis import analyze_failure, Diagnosis
 @dataclass
 class GRPCandidate:
     """A candidate test case in the GRP pipeline."""
+
     id: str
     prompt: str
     response: str
@@ -36,6 +38,9 @@ class GRPCandidate:
     fixed_by_commit: Optional[str] = None
     fix_description: Optional[str] = None
 
+    # Trace linkage (MLflow trace captured via mlflow autolog claude)
+    trace_run_id: Optional[str] = None
+
     # Metadata
     created_at: datetime = field(default_factory=datetime.now)
     source: str = "grp"
@@ -44,6 +49,7 @@ class GRPCandidate:
 @dataclass
 class GRPResult:
     """Result of GRP pipeline execution."""
+
     status: Literal["promoted", "rejected", "skipped", "pending"]
     case_id: Optional[str] = None
     reason: Optional[str] = None
@@ -52,26 +58,20 @@ class GRPResult:
 @dataclass
 class ApprovalMetadata:
     """Metadata from human approval."""
+
     approved: bool
     reviewer: str
     reason: Optional[str] = None
     expectations_edited: bool = False
 
 
-def generate_candidate(
-    skill_name: str,
-    prompt: str,
-    response: str
-) -> GRPCandidate:
+def generate_candidate(skill_name: str, prompt: str, response: str) -> GRPCandidate:
     """
     Generate a candidate from prompt/response pair.
     Executes code blocks to determine execution_success.
     """
     candidate = GRPCandidate(
-        id=f"grp_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
-        skill_name=skill_name,
-        prompt=prompt,
-        response=response
+        id=f"grp_{datetime.now().strftime('%Y%m%d_%H%M%S')}", skill_name=skill_name, prompt=prompt, response=response
     )
 
     # Execute code blocks
@@ -79,7 +79,7 @@ def generate_candidate(
     candidate.code_blocks_found = total
     candidate.code_blocks_passed = passed
     candidate.execution_details = details
-    candidate.execution_success = (total == 0 or passed == total)
+    candidate.execution_success = total == 0 or passed == total
 
     # Generate diagnosis if failed
     if not candidate.execution_success:
@@ -95,18 +95,13 @@ def generate_candidate(
                     break
 
             candidate.diagnosis = analyze_failure(
-                error=first_failure["error"] or "Unknown error",
-                code_block=failed_code,
-                skill_name=skill_name
+                error=first_failure["error"] or "Unknown error", code_block=failed_code, skill_name=skill_name
             )
 
     return candidate
 
 
-def save_candidates(
-    candidates: List[GRPCandidate],
-    output_path: Path
-) -> None:
+def save_candidates(candidates: List[GRPCandidate], output_path: Path) -> None:
     """Save candidates to YAML for review."""
     data = {
         "candidates": [
@@ -124,36 +119,31 @@ def save_candidates(
                     "error": c.diagnosis.error,
                     "code_block": c.diagnosis.code_block,
                     "relevant_sections": [
-                        {
-                            "file": s.file_path,
-                            "section": s.section_name,
-                            "excerpt": s.excerpt,
-                            "line": s.line_number
-                        }
+                        {"file": s.file_path, "section": s.section_name, "excerpt": s.excerpt, "line": s.line_number}
                         for s in c.diagnosis.relevant_sections
                     ],
-                    "suggested_action": c.diagnosis.suggested_action
-                } if c.diagnosis else None,
+                    "suggested_action": c.diagnosis.suggested_action,
+                }
+                if c.diagnosis
+                else None,
                 "created_at": c.created_at.isoformat(),
                 "reviewer": c.reviewer,
                 "reviewed_at": c.reviewed_at.isoformat() if c.reviewed_at else None,
                 "review_notes": c.review_notes,
                 "fixed_by_commit": c.fixed_by_commit,
-                "fix_description": c.fix_description
+                "fix_description": c.fix_description,
+                "trace_run_id": c.trace_run_id,  # Link to MLflow trace
             }
             for c in candidates
         ]
     }
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(output_path, 'w') as f:
+    with open(output_path, "w") as f:
         yaml.dump(data, f, default_flow_style=False, sort_keys=False)
 
 
-def promote_approved(
-    candidates_path: Path,
-    ground_truth_path: Path
-) -> int:
+def promote_approved(candidates_path: Path, ground_truth_path: Path) -> int:
     """Promote approved candidates to ground truth."""
     with open(candidates_path) as f:
         candidates_data = yaml.safe_load(f)
@@ -174,10 +164,7 @@ def promote_approved(
             gt_case = {
                 "id": c["id"],
                 "inputs": {"prompt": c["prompt"]},
-                "outputs": {
-                    "response": c["response"],
-                    "execution_success": c["execution_success"]
-                },
+                "outputs": {"response": c["response"], "execution_success": c["execution_success"]},
                 "expectations": {},  # Filled by reviewer during approval
                 "metadata": {
                     "category": "happy_path",
@@ -187,8 +174,9 @@ def promote_approved(
                     "approved_at": c.get("reviewed_at"),
                     "skill_version": c.get("skill_version"),
                     "fixed_by_commit": c.get("fixed_by_commit"),
-                    "fix_description": c.get("fix_description")
-                }
+                    "fix_description": c.get("fix_description"),
+                    "trace_run_id": c.get("trace_run_id"),  # Preserve MLflow trace link
+                },
             }
             gt_data["test_cases"].append(gt_case)
             promoted += 1
@@ -198,12 +186,12 @@ def promote_approved(
 
     # Save updated ground truth
     ground_truth_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(ground_truth_path, 'w') as f:
+    with open(ground_truth_path, "w") as f:
         yaml.dump(gt_data, f, default_flow_style=False, sort_keys=False)
 
     # Update candidates file with remaining
     candidates_data["candidates"] = remaining
-    with open(candidates_path, 'w') as f:
+    with open(candidates_path, "w") as f:
         yaml.dump(candidates_data, f, default_flow_style=False, sort_keys=False)
 
     return promoted
@@ -214,7 +202,7 @@ def grp_interactive(
     prompt: str,
     invoke_skill_fn,  # Callable[[str, str], str]
     human_review_fn,  # Callable[[GRPCandidate], ApprovalMetadata]
-    max_retries: int = 3
+    max_retries: int = 3,
 ) -> GRPResult:
     """
     Full GRP with fix loop and human review.
@@ -241,10 +229,7 @@ def grp_interactive(
         # 3. FIX (if failed)
         if not candidate.execution_success:
             if retries >= max_retries:
-                return GRPResult(
-                    status="skipped",
-                    reason=f"Max retries ({max_retries}) exceeded"
-                )
+                return GRPResult(status="skipped", reason=f"Max retries ({max_retries}) exceeded")
 
             # Show diagnosis to human (in real implementation)
             # Human edits skill files...
@@ -258,11 +243,7 @@ def grp_interactive(
     approval = human_review_fn(candidate)
 
     if not approval.approved:
-        return GRPResult(
-            status="rejected",
-            case_id=candidate.id,
-            reason=approval.reason
-        )
+        return GRPResult(status="rejected", case_id=candidate.id, reason=approval.reason)
 
     # Record approval metadata
     candidate.status = "approved"
@@ -270,7 +251,4 @@ def grp_interactive(
     candidate.reviewed_at = datetime.now()
 
     # 5. PROMOTE happens separately via promote_approved()
-    return GRPResult(
-        status="promoted",
-        case_id=candidate.id
-    )
+    return GRPResult(status="promoted", case_id=candidate.id)

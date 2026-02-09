@@ -1,3 +1,7 @@
+# Databricks AI Dev Kit
+.ai-dev-kit/
+
+
 # Python
 __pycache__/
 *.py[cod]
@@ -12,6 +16,8 @@ eggs/
 .eggs/
 lib/
 lib64/
+# Exception: frontend source lib (Python ignores lib/ for build artifacts)
+!databricks-builder-app/client/src/lib/
 parts/
 sdist/
 var/
@@ -62,3 +68,4 @@ databricks-tools-core/tests/integration/pdf/generated_pdf/
 
 # Python cache
 __pycache__/
+windows_info.txt

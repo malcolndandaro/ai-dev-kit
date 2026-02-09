@@ -7,10 +7,22 @@ Skills that teach Claude Code how to work effectively with Databricks - providin
 Run in your project root:
 
 ```bash
+# Install all skills (Databricks + MLflow)
 curl -sSL https://raw.githubusercontent.com/databricks-solutions/ai-dev-kit/main/databricks-skills/install_skills.sh | bash
+
+# Install specific skills
+curl -sSL https://raw.githubusercontent.com/databricks-solutions/ai-dev-kit/main/databricks-skills/install_skills.sh | bash -s -- asset-bundles agent-evaluation
+
+# Pin MLflow skills to a specific version
+curl -sSL https://raw.githubusercontent.com/databricks-solutions/ai-dev-kit/main/databricks-skills/install_skills.sh | bash -s -- --mlflow-version v1.0.0
+
+# List available skills
+curl -sSL https://raw.githubusercontent.com/databricks-solutions/ai-dev-kit/main/databricks-skills/install_skills.sh | bash -s -- --list
 ```
 
-This creates `.claude/skills/` and copies all skills. Claude Code loads them automatically.
+This creates `.claude/skills/` and downloads all skills. Claude Code loads them automatically.
+- **Databricks skills** are downloaded from this repository
+- **MLflow skills** are fetched dynamically from [github.com/mlflow/skills](https://github.com/mlflow/skills)
 
 **Manual install:**
 ```bash
@@ -23,10 +35,19 @@ cp -r ai-dev-kit/databricks-skills/agent-bricks .claude/skills/
 ### 🤖 AI & Agents
 - **agent-bricks** - Knowledge Assistants, Genie Spaces, Multi-Agent Supervisors
 - **databricks-genie** - Genie Spaces: create, curate, and query via Conversation API
-- **mlflow-evaluation** - Model evaluation, scoring, trace analysis
 - **model-serving** - Deploy MLflow models and AI agents to endpoints
 - **unstructured-pdf-generation** - Generate synthetic PDFs for RAG
 - **vector-search** - Vector similarity search for RAG and semantic search
+
+### 📊 MLflow (from [mlflow/skills](https://github.com/mlflow/skills))
+- **agent-evaluation** - End-to-end agent evaluation workflow
+- **analyze-mlflow-chat-session** - Debug multi-turn conversations
+- **analyze-mlflow-trace** - Debug traces, spans, and assessments
+- **instrumenting-with-mlflow-tracing** - Add MLflow tracing to Python/TypeScript
+- **mlflow-onboarding** - MLflow setup guide for new users
+- **querying-mlflow-metrics** - Aggregated metrics and time-series analysis
+- **retrieving-mlflow-traces** - Trace search and filtering
+- **searching-mlflow-docs** - Search MLflow documentation
 
 ### 📊 Analytics & Dashboards
 - **aibi-dashboards** - AI/BI dashboards (with SQL validation workflow)
@@ -98,3 +119,4 @@ description: "What this teaches"
 - [databricks-tools-core](../databricks-tools-core/) - Python library
 - [databricks-mcp-server](../databricks-mcp-server/) - MCP server
 - [Databricks Docs](https://docs.databricks.com/) - Official documentation
+- [MLflow Skills](https://github.com/mlflow/skills) - Upstream MLflow skills repository

@@ -2,7 +2,7 @@
 """Run MLflow evaluation for a skill.
 
 Usage:
-    python mlflow_eval.py <skill_name> [--filter-category <category>]
+    python mlflow_eval.py <skill_name> [--filter-category <category>] [--run-name <name>]
 
 Environment Variables:
     DATABRICKS_CONFIG_PROFILE - Databricks CLI profile (default: "DEFAULT")
@@ -10,22 +10,10 @@ Environment Variables:
     MLFLOW_EXPERIMENT_NAME - Experiment path (e.g., "/Users/{user}/skill-test")
 """
 import sys
-import json
 import argparse
-from pathlib import Path
 
-
-def find_repo_root() -> Path:
-    """Find repo root by looking for .test/src/ directory."""
-    current = Path(__file__).resolve().parent
-    while current != current.parent:
-        if (current / ".test" / "src").exists():
-            return current
-        # Also check if we're inside .test/
-        if (current / "src" / "skill_test").exists() and current.name == ".test":
-            return current.parent
-        current = current.parent
-    raise RuntimeError("Could not find repo root with .test/src/")
+# Import common utilities
+from _common import setup_path, print_result, handle_error
 
 
 def main():
@@ -35,28 +23,27 @@ def main():
     parser.add_argument("--run-name", help="Custom MLflow run name")
     args = parser.parse_args()
 
-    # Add skill_test to Python path
-    repo_root = find_repo_root()
-    sys.path.insert(0, str(repo_root / ".test" / "src"))
+    setup_path()
 
     try:
         from skill_test.runners import evaluate_skill
 
-        results = evaluate_skill(
+        result = evaluate_skill(
             args.skill_name,
             filter_category=args.filter_category,
             run_name=args.run_name,
         )
-        print(json.dumps(results, indent=2, default=str))
-        sys.exit(0 if results.get("run_id") else 1)
+
+        # Convert to standard result format
+        if result.get("run_id"):
+            result["success"] = True
+        else:
+            result["success"] = False
+
+        sys.exit(print_result(result))
 
     except Exception as e:
-        print(json.dumps({
-            "error": str(e),
-            "success": False,
-            "skill_name": args.skill_name
-        }, indent=2))
-        sys.exit(1)
+        sys.exit(handle_error(e, args.skill_name))
 
 
 if __name__ == "__main__":

@@ -3,29 +3,29 @@
 This module provides commands for the /skill-test CLI skill. The actual MCP tools
 are injected via CLIContext at runtime by the skill handler.
 """
+
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any, Optional, List, Callable, Literal
+from typing import Dict, Any, Optional, List, Literal
 import yaml
 
 from ..grp.executor import (
     DatabricksExecutionConfig,
-    CodeBlocksExecutionResult,
     execute_code_blocks,
     execute_code_blocks_on_databricks,
-    extract_code_blocks,
     MCPExecuteCommand,
     MCPExecuteSQL,
     MCPGetBestWarehouse,
     MCPGetBestCluster,
 )
 from ..grp.pipeline import (
-    GRPCandidate,
-    GRPResult,
     generate_candidate,
-    save_candidates,
     promote_approved,
+)
+from ..grp.reviewer import (
+    review_candidates_file,
+    batch_approve,
 )
 from ..fixtures import (
     TestFixtureConfig,
@@ -34,7 +34,7 @@ from ..fixtures import (
     teardown_fixtures,
 )
 from ..fixtures.setup import MCPUploadFile
-from ..dataset import YAMLDatasetSource, EvalRecord
+from ..dataset import YAMLDatasetSource
 
 
 @dataclass
@@ -44,6 +44,7 @@ class CLIContext:
     The skill handler injects actual MCP tool functions at runtime.
     This allows the CLI commands to execute code on Databricks.
     """
+
     # MCP tools for Databricks execution
     mcp_execute_command: Optional[MCPExecuteCommand] = None
     mcp_execute_sql: Optional[MCPExecuteSQL] = None
@@ -63,6 +64,7 @@ class CLIContext:
 @dataclass
 class InteractiveResult:
     """Result of interactive test generation."""
+
     success: bool
     test_id: str
     skill_name: str
@@ -81,6 +83,12 @@ class InteractiveResult:
     # Output handling
     saved_to: Optional[str] = None  # "ground_truth.yaml" or "candidates.yaml"
     auto_approved: bool = False  # True if all blocks passed and auto-promoted
+
+    # Trace evaluation results (when capture_trace=True)
+    trace_source: Optional[str] = None  # "mlflow:{run_id}" or "local:{path}"
+    trace_results: Optional[List[Dict[str, Any]]] = None  # Scorer results
+    trace_mlflow_enabled: bool = False  # Whether MLflow autolog was enabled
+    trace_error: Optional[str] = None  # Error during trace capture
 
     # Errors
     error: Optional[str] = None
@@ -105,11 +113,7 @@ def run(
     # Load ground truth
     gt_path = ctx.base_path / skill_name / "ground_truth.yaml"
     if not gt_path.exists():
-        return {
-            "success": False,
-            "error": f"No ground_truth.yaml found for skill '{skill_name}'",
-            "path": str(gt_path)
-        }
+        return {"success": False, "error": f"No ground_truth.yaml found for skill '{skill_name}'", "path": str(gt_path)}
 
     source = YAMLDatasetSource(gt_path)
     records = source.load()
@@ -145,14 +149,16 @@ def run(
 
         test_passed = total_blocks == 0 or passed_blocks == total_blocks
 
-        results.append({
-            "id": record.id,
-            "passed": test_passed,
-            "total_blocks": total_blocks,
-            "passed_blocks": passed_blocks,
-            "execution_mode": execution_mode,
-            "details": details,
-        })
+        results.append(
+            {
+                "id": record.id,
+                "passed": test_passed,
+                "total_blocks": total_blocks,
+                "passed_blocks": passed_blocks,
+                "execution_mode": execution_mode,
+                "details": details,
+            }
+        )
 
         if test_passed:
             passed += 1
@@ -191,7 +197,7 @@ def regression(
             "success": False,
             "error": f"No baseline found for skill '{skill_name}'",
             "path": str(baseline_path),
-            "hint": "Run 'run' first and save as baseline"
+            "hint": "Run 'run' first and save as baseline",
         }
 
     with open(baseline_path) as f:
@@ -218,19 +224,23 @@ def regression(
     current_pass_rate = current_metrics["pass_rate"]
 
     if current_pass_rate < baseline_pass_rate:
-        regressions.append({
-            "metric": "pass_rate",
-            "baseline": baseline_pass_rate,
-            "current": current_pass_rate,
-            "delta": current_pass_rate - baseline_pass_rate
-        })
+        regressions.append(
+            {
+                "metric": "pass_rate",
+                "baseline": baseline_pass_rate,
+                "current": current_pass_rate,
+                "delta": current_pass_rate - baseline_pass_rate,
+            }
+        )
     elif current_pass_rate > baseline_pass_rate:
-        improvements.append({
-            "metric": "pass_rate",
-            "baseline": baseline_pass_rate,
-            "current": current_pass_rate,
-            "delta": current_pass_rate - baseline_pass_rate
-        })
+        improvements.append(
+            {
+                "metric": "pass_rate",
+                "baseline": baseline_pass_rate,
+                "current": current_pass_rate,
+                "delta": current_pass_rate - baseline_pass_rate,
+            }
+        )
 
     return {
         "success": len(regressions) == 0,
@@ -262,11 +272,7 @@ def init(
     skill_dir = ctx.base_path / skill_name
 
     if skill_dir.exists():
-        return {
-            "success": False,
-            "error": f"Skill '{skill_name}' already has test definitions",
-            "path": str(skill_dir)
-        }
+        return {"success": False, "error": f"Skill '{skill_name}' already has test definitions", "path": str(skill_dir)}
 
     # Create directory
     skill_dir.mkdir(parents=True, exist_ok=True)
@@ -281,85 +287,83 @@ def init(
         "test_cases": [
             {
                 "id": f"{skill_name}_001",
-                "inputs": {
-                    "prompt": "Example prompt for the skill"
-                },
-                "outputs": {
-                    "response": "Example response from the skill",
-                    "execution_success": True
-                },
+                "inputs": {"prompt": "Example prompt for the skill"},
+                "outputs": {"response": "Example response from the skill", "execution_success": True},
                 "expectations": {
                     "expected_facts": ["fact1", "fact2"],
-                    "expected_patterns": [
-                        {"pattern": "pattern_to_match", "min_count": 1}
-                    ],
-                    "guidelines": ["Guideline for evaluation"]
+                    "expected_patterns": [{"pattern": "pattern_to_match", "min_count": 1}],
+                    "guidelines": ["Guideline for evaluation"],
+                    # Per-test trace expectations (override manifest defaults)
+                    # "tool_limits": {"mcp__databricks__create_pipeline": 1},
+                    # "expected_files": ["bronze_orders.sql"],
                 },
                 "metadata": {
                     "category": "happy_path",
-                    "difficulty": "easy"
-                }
+                    "difficulty": "easy",
+                    # Link to MLflow trace for this test
+                    # "trace_run_id": "abc123",
+                },
             }
-        ]
+        ],
     }
 
     gt_path = skill_dir / "ground_truth.yaml"
-    with open(gt_path, 'w') as f:
+    with open(gt_path, "w") as f:
         yaml.dump(gt_template, f, default_flow_style=False, sort_keys=False)
 
     # Create empty candidates.yaml
-    candidates_template = {
-        "candidates": []
-    }
+    candidates_template = {"candidates": []}
     candidates_path = skill_dir / "candidates.yaml"
-    with open(candidates_path, 'w') as f:
+    with open(candidates_path, "w") as f:
         yaml.dump(candidates_template, f, default_flow_style=False, sort_keys=False)
 
     # Create manifest.yaml
     manifest_template = {
         "skill_name": skill_name,
         "description": f"Test cases for {skill_name} skill",
-        "triggers": [
-            f"{skill_name} related prompt"
-        ],
+        "triggers": [f"{skill_name} related prompt"],
         "scorers": {
             "enabled": [
                 "python_syntax",
                 "sql_syntax",
                 "pattern_adherence",
                 "no_hallucinated_apis",
-                "expected_facts_present"
+                "expected_facts_present",
             ],
-            "llm_scorers": [
-                "Safety",
-                "guidelines_from_expectations"
-            ],
+            "llm_scorers": ["Safety", "guidelines_from_expectations"],
             "default_guidelines": [
                 "Response must address the user's request completely",
                 "Code examples must follow documented best practices",
-                "Response must use modern APIs (not deprecated ones)"
-            ]
+                "Response must use modern APIs (not deprecated ones)",
+            ],
+            # Trace-based expectations for evaluating Claude Code session behavior
+            "trace_expectations": {
+                "tool_limits": {
+                    "Bash": 10,  # Max 10 bash commands
+                    "Read": 20,  # Example: max Read calls
+                },
+                "token_budget": {
+                    "max_total": 100000,  # Max total tokens per session
+                },
+                "required_tools": [
+                    "Read",  # Must read files before editing
+                ],
+                "banned_tools": [],  # Tools that should not be used
+                "expected_files": [],  # File patterns that should be created
+            },
         },
-        "quality_gates": {
-            "syntax_valid": 1.0,
-            "pattern_adherence": 0.9,
-            "execution_success": 0.8
-        }
+        "quality_gates": {"syntax_valid": 1.0, "pattern_adherence": 0.9, "execution_success": 0.8},
     }
     manifest_path = skill_dir / "manifest.yaml"
-    with open(manifest_path, 'w') as f:
+    with open(manifest_path, "w") as f:
         yaml.dump(manifest_template, f, default_flow_style=False, sort_keys=False)
 
     return {
         "success": True,
         "skill_name": skill_name,
         "path": str(skill_dir),
-        "files_created": [
-            "ground_truth.yaml",
-            "candidates.yaml",
-            "manifest.yaml"
-        ],
-        "message": f"Initialized test scaffolding for '{skill_name}'"
+        "files_created": ["ground_truth.yaml", "candidates.yaml", "manifest.yaml"],
+        "message": f"Initialized test scaffolding for '{skill_name}'",
     }
 
 
@@ -383,7 +387,7 @@ def sync(
         "error": "UC sync not yet implemented (Phase 2)",
         "skill_name": skill_name,
         "direction": direction,
-        "hint": "Use YAML files directly for now"
+        "hint": "Use YAML files directly for now",
     }
 
 
@@ -435,11 +439,11 @@ def baseline(
                 "execution_mode": r.get("execution_mode", "unknown"),
             }
             for r in results.get("results", [])
-        ]
+        ],
     }
 
     baseline_path = baseline_dir / "baseline.yaml"
-    with open(baseline_path, 'w') as f:
+    with open(baseline_path, "w") as f:
         yaml.dump(baseline_data, f, default_flow_style=False, sort_keys=False)
 
     return {
@@ -447,7 +451,7 @@ def baseline(
         "skill_name": skill_name,
         "baseline_path": str(baseline_path),
         "metrics": baseline_data["metrics"],
-        "message": f"Baseline saved to {baseline_path}"
+        "message": f"Baseline saved to {baseline_path}",
     }
 
 
@@ -474,7 +478,7 @@ def mlflow_eval(
         return {
             "success": False,
             "error": f"Failed to import evaluate_skill: {e}",
-            "hint": "Ensure mlflow and required dependencies are installed"
+            "hint": "Ensure mlflow and required dependencies are installed",
         }
 
     try:
@@ -483,14 +487,57 @@ def mlflow_eval(
             "success": True,
             "skill_name": skill_name,
             "results": results,
-            "message": f"MLflow evaluation complete for '{skill_name}'"
+            "message": f"MLflow evaluation complete for '{skill_name}'",
         }
     except Exception as e:
         return {
             "success": False,
             "error": str(e),
             "skill_name": skill_name,
-            "hint": "Check MLflow configuration and ground_truth.yaml exists"
+            "hint": "Check MLflow configuration and ground_truth.yaml exists",
+        }
+
+
+def routing_eval(
+    ctx: CLIContext,  # Reserved for future use
+    run_name: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Run routing evaluation to test skill trigger detection.
+
+    Evaluates Claude Code's ability to route prompts to correct skills
+    using routing-specific scorers.
+
+    Args:
+        ctx: CLI context (reserved for future use)
+        run_name: Optional custom MLflow run name
+
+    Returns:
+        Dictionary with routing evaluation results
+    """
+    _ = ctx  # Reserved for future use
+    try:
+        from ..runners import evaluate_routing
+    except ImportError as e:
+        return {
+            "success": False,
+            "error": f"Failed to import evaluate_routing: {e}",
+            "hint": "Ensure mlflow and required dependencies are installed",
+        }
+
+    try:
+        results = evaluate_routing(run_name=run_name)
+        return {
+            "success": True,
+            "evaluation_type": "routing",
+            "results": results,
+            "message": "Routing evaluation complete",
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "evaluation_type": "routing",
+            "hint": "Check MLflow configuration and _routing/ground_truth.yaml exists",
         }
 
 
@@ -501,6 +548,7 @@ def interactive(
     ctx: CLIContext,
     fixture_config: Optional[TestFixtureConfig] = None,
     auto_approve_on_success: bool = True,
+    capture_trace: bool = False,
 ) -> InteractiveResult:
     """Interactive test generation with Databricks execution.
 
@@ -510,6 +558,7 @@ def interactive(
     3. If ALL blocks pass and auto_approve_on_success: save to ground_truth.yaml
     4. If ANY block fails: save to candidates.yaml for GRP review
     5. Optionally tear down fixtures
+    6. Optionally evaluate session trace (if capture_trace=True)
 
     Args:
         skill_name: Name of the skill being tested
@@ -518,18 +567,14 @@ def interactive(
         ctx: CLI context with MCP tools
         fixture_config: Optional fixture configuration for test setup
         auto_approve_on_success: If True, auto-save to ground_truth on success
+        capture_trace: If True, evaluate trace after execution (MLflow if configured, else local)
 
     Returns:
         InteractiveResult with execution details and outcome
     """
     test_id = f"grp_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
-    result = InteractiveResult(
-        success=False,
-        test_id=test_id,
-        skill_name=skill_name,
-        execution_mode="local"
-    )
+    result = InteractiveResult(success=False, test_id=test_id, skill_name=skill_name, execution_mode="local")
 
     # 1. Set up fixtures if provided
     if fixture_config and ctx.mcp_execute_sql and ctx.mcp_upload_file:
@@ -591,14 +636,11 @@ def interactive(
         new_case = {
             "id": test_id,
             "inputs": {"prompt": prompt},
-            "outputs": {
-                "response": response,
-                "execution_success": True
-            },
+            "outputs": {"response": response, "execution_success": True},
             "expectations": {
                 "expected_facts": [],  # To be filled by reviewer
                 "expected_patterns": [],
-                "guidelines": []
+                "guidelines": [],
             },
             "metadata": {
                 "category": "happy_path",
@@ -606,9 +648,9 @@ def interactive(
                 "created_at": datetime.now().isoformat(),
                 "execution_verified": {
                     "mode": result.execution_mode,
-                    "verified_date": datetime.now().strftime("%Y-%m-%d")
-                }
-            }
+                    "verified_date": datetime.now().strftime("%Y-%m-%d"),
+                },
+            },
         }
 
         # Add fixture info if used
@@ -619,12 +661,12 @@ def interactive(
                 "volume": fixture_config.volume,
                 "files": [{"local_path": f.local_path, "volume_path": f.volume_path} for f in fixture_config.files],
                 "tables": [{"name": t.name, "ddl": t.ddl} for t in fixture_config.tables],
-                "cleanup_after": fixture_config.cleanup_after
+                "cleanup_after": fixture_config.cleanup_after,
             }
 
         gt_data["test_cases"].append(new_case)
 
-        with open(gt_path, 'w') as f:
+        with open(gt_path, "w") as f:
             yaml.dump(gt_data, f, default_flow_style=False, sort_keys=False)
 
         result.saved_to = "ground_truth.yaml"
@@ -669,19 +711,21 @@ def interactive(
             candidate_dict["diagnosis"] = {
                 "error": candidate.diagnosis.error,
                 "code_block": candidate.diagnosis.code_block,
-                "suggested_action": candidate.diagnosis.suggested_action
+                "suggested_action": candidate.diagnosis.suggested_action,
             }
 
         candidates_data["candidates"].append(candidate_dict)
 
-        with open(candidates_path, 'w') as f:
+        with open(candidates_path, "w") as f:
             yaml.dump(candidates_data, f, default_flow_style=False, sort_keys=False)
 
         result.saved_to = "candidates.yaml"
         result.auto_approved = False
         result.success = True
         failed_count = result.total_blocks - result.passed_blocks
-        result.message = f"{failed_count}/{result.total_blocks} code blocks failed. Saved to candidates.yaml for GRP review"
+        result.message = (
+            f"{failed_count}/{result.total_blocks} code blocks failed. Saved to candidates.yaml for GRP review"
+        )
 
     # 4. Tear down fixtures if configured
     if fixture_config and fixture_config.cleanup_after and ctx.mcp_execute_sql:
@@ -693,6 +737,58 @@ def interactive(
         result.fixtures_teardown = teardown_result.success
         if result.fixture_details:
             result.fixture_details["teardown"] = teardown_result.details
+
+    # 5. Optionally evaluate trace
+    if capture_trace:
+        try:
+            from ..trace.source import get_trace_from_best_source, check_autolog_status
+            from ..scorers.trace import get_trace_scorers
+
+            status = check_autolog_status()
+            result.trace_mlflow_enabled = status.enabled
+
+            metrics, source = get_trace_from_best_source(skill_name)
+            result.trace_source = source
+
+            # Load trace expectations from manifest
+            manifest_path = ctx.base_path / skill_name / "manifest.yaml"
+            expectations = {}
+            if manifest_path.exists():
+                with open(manifest_path) as f:
+                    manifest = yaml.safe_load(f) or {}
+                # Look for trace_expectations in scorers section or at top level
+                if "scorers" in manifest and "trace_expectations" in manifest["scorers"]:
+                    expectations = manifest["scorers"]["trace_expectations"]
+                elif "trace_expectations" in manifest:
+                    expectations = manifest["trace_expectations"]
+
+            # Run trace scorers
+            trace_dict = metrics.to_dict()
+            trace_results = []
+            for scorer in get_trace_scorers():
+                try:
+                    feedback = scorer(trace=trace_dict, expectations=expectations)
+                    trace_results.append(
+                        {
+                            "name": feedback.name,
+                            "value": feedback.value,
+                            "rationale": feedback.rationale,
+                        }
+                    )
+                except Exception as e:
+                    scorer_name = getattr(scorer, "__name__", str(scorer))
+                    trace_results.append(
+                        {
+                            "name": scorer_name,
+                            "value": "error",
+                            "rationale": str(e),
+                        }
+                    )
+
+            result.trace_results = trace_results
+
+        except Exception as e:
+            result.trace_error = str(e)
 
     return result
 
@@ -714,11 +810,7 @@ def scorers(
     """
     manifest_path = ctx.base_path / skill_name / "manifest.yaml"
     if not manifest_path.exists():
-        return {
-            "success": False,
-            "error": f"No manifest found for skill '{skill_name}'",
-            "path": str(manifest_path)
-        }
+        return {"success": False, "error": f"No manifest found for skill '{skill_name}'", "path": str(manifest_path)}
 
     with open(manifest_path) as f:
         manifest = yaml.safe_load(f) or {}
@@ -742,7 +834,7 @@ def scorers(
         "enabled_scorers": scorer_config.get("enabled", []),
         "llm_scorers": scorer_config.get("llm_scorers", []),
         "default_guidelines": scorer_config.get("default_guidelines", []),
-        "manifest_path": str(manifest_path)
+        "manifest_path": str(manifest_path),
     }
 
 
@@ -773,11 +865,7 @@ def scorers_update(
     """
     manifest_path = ctx.base_path / skill_name / "manifest.yaml"
     if not manifest_path.exists():
-        return {
-            "success": False,
-            "error": f"No manifest found for skill '{skill_name}'",
-            "path": str(manifest_path)
-        }
+        return {"success": False, "error": f"No manifest found for skill '{skill_name}'", "path": str(manifest_path)}
 
     with open(manifest_path) as f:
         manifest = yaml.safe_load(f) or {}
@@ -790,14 +878,10 @@ def scorers_update(
             manifest["scorers"] = {
                 "enabled": eval_scorers.get("tier1", []) + eval_scorers.get("tier2", []),
                 "llm_scorers": eval_scorers.get("tier3", []),
-                "default_guidelines": []
+                "default_guidelines": [],
             }
         else:
-            manifest["scorers"] = {
-                "enabled": [],
-                "llm_scorers": [],
-                "default_guidelines": []
-            }
+            manifest["scorers"] = {"enabled": [], "llm_scorers": [], "default_guidelines": []}
 
     scorer_config = manifest["scorers"]
 
@@ -853,7 +937,7 @@ def scorers_update(
                     changes.append(f"Removed guideline: {guideline[:50]}...")
 
     # Save updated manifest
-    with open(manifest_path, 'w') as f:
+    with open(manifest_path, "w") as f:
         yaml.dump(manifest, f, default_flow_style=False, sort_keys=False)
 
     return {
@@ -863,7 +947,7 @@ def scorers_update(
         "enabled_scorers": scorer_config["enabled"],
         "llm_scorers": scorer_config["llm_scorers"],
         "default_guidelines": scorer_config["default_guidelines"],
-        "manifest_path": str(manifest_path)
+        "manifest_path": str(manifest_path),
     }
 
 
@@ -889,9 +973,7 @@ def setup_test_fixtures(
     gt_path = ctx.base_path / skill_name / "ground_truth.yaml"
     if not gt_path.exists():
         return FixtureResult(
-            success=False,
-            message=f"No ground_truth.yaml found for skill '{skill_name}'",
-            error="File not found"
+            success=False, message=f"No ground_truth.yaml found for skill '{skill_name}'", error="File not found"
         )
 
     with open(gt_path) as f:
@@ -905,19 +987,13 @@ def setup_test_fixtures(
             break
 
     if not test_case:
-        return FixtureResult(
-            success=False,
-            message=f"Test case '{test_id}' not found",
-            error="Test case not found"
-        )
+        return FixtureResult(success=False, message=f"Test case '{test_id}' not found", error="Test case not found")
 
     # Check for fixtures
     fixtures_def = test_case.get("fixtures")
     if not fixtures_def:
         return FixtureResult(
-            success=True,
-            message="No fixtures defined for this test case",
-            details={"test_id": test_id}
+            success=True, message="No fixtures defined for this test case", details={"test_id": test_id}
         )
 
     # Create fixture config
@@ -926,16 +1002,12 @@ def setup_test_fixtures(
     # Check for required MCP tools
     if not ctx.mcp_execute_sql:
         return FixtureResult(
-            success=False,
-            message="MCP execute_sql tool required for fixture setup",
-            error="Missing MCP tool"
+            success=False, message="MCP execute_sql tool required for fixture setup", error="Missing MCP tool"
         )
 
     if not ctx.mcp_upload_file and fixture_config.files:
         return FixtureResult(
-            success=False,
-            message="MCP upload_file tool required for file fixtures",
-            error="Missing MCP tool"
+            success=False, message="MCP upload_file tool required for file fixtures", error="Missing MCP tool"
         )
 
     # Set up fixtures
@@ -946,3 +1018,384 @@ def setup_test_fixtures(
         ctx.mcp_get_best_warehouse,
         base_path=str(ctx.base_path.parent.parent),
     )
+
+
+def trace_eval(
+    skill_name: str,
+    ctx: CLIContext,
+    trace_path: Optional[str] = None,
+    run_id: Optional[str] = None,
+    trace_id: Optional[str] = None,
+    trace_dir: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Evaluate trace(s) against skill expectations.
+
+    Evaluates Claude Code session traces using trace-based scorers.
+    Traces can be provided via:
+    - Local JSONL file (--trace)
+    - MLflow run ID (--run-id)
+    - MLflow trace ID (--trace-id)
+    - Directory of trace files (--trace-dir)
+
+    Args:
+        skill_name: Name of the skill to evaluate against
+        ctx: CLI context
+        trace_path: Path to a local JSONL trace file
+        run_id: MLflow run ID containing the trace
+        trace_id: MLflow trace ID (e.g., "tr-...")
+        trace_dir: Directory containing multiple trace files
+
+    Returns:
+        Dictionary with evaluation results:
+        - success: True if all scorers passed
+        - skill_name: The skill evaluated
+        - trace_source: Where the trace came from
+        - metrics: TraceMetrics summary
+        - scorer_results: List of scorer results
+        - violations: List of any violations found
+    """
+    from ..trace.parser import parse_and_compute_metrics
+    from ..trace.mlflow_integration import get_trace_from_mlflow, get_trace_by_id
+    from ..scorers.trace import get_trace_scorers
+
+    # Validate inputs - must provide exactly one trace source
+    sources = [trace_path, run_id, trace_id, trace_dir]
+    provided = sum(1 for s in sources if s is not None)
+
+    if provided == 0:
+        return {
+            "success": False,
+            "error": "Must provide one of: --trace, --run-id, --trace-id, or --trace-dir",
+            "skill_name": skill_name,
+        }
+
+    if provided > 1:
+        return {
+            "success": False,
+            "error": "Provide only one of: --trace, --run-id, --trace-id, or --trace-dir",
+            "skill_name": skill_name,
+        }
+
+    # Load expectations from manifest
+    manifest_path = ctx.base_path / skill_name / "manifest.yaml"
+    expectations = {}
+
+    if manifest_path.exists():
+        with open(manifest_path) as f:
+            manifest = yaml.safe_load(f) or {}
+
+        # Look for trace_expectations in scorers section or at top level
+        if "scorers" in manifest and "trace_expectations" in manifest["scorers"]:
+            expectations = manifest["scorers"]["trace_expectations"]
+        elif "trace_expectations" in manifest:
+            expectations = manifest["trace_expectations"]
+
+    if not expectations:
+        return {
+            "success": False,
+            "error": f"No trace_expectations found in manifest for '{skill_name}'",
+            "skill_name": skill_name,
+            "manifest_path": str(manifest_path),
+            "hint": "Add trace_expectations section to manifest.yaml",
+        }
+
+    # Get trace metrics
+    traces_to_eval = []
+
+    if trace_path:
+        path = Path(trace_path).expanduser()
+        if not path.exists():
+            return {
+                "success": False,
+                "error": f"Trace file not found: {trace_path}",
+                "skill_name": skill_name,
+            }
+        try:
+            metrics = parse_and_compute_metrics(path)
+            traces_to_eval.append({"source": str(path), "metrics": metrics})
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Failed to parse trace file: {e}",
+                "skill_name": skill_name,
+                "trace_path": trace_path,
+            }
+
+    elif run_id:
+        try:
+            metrics = get_trace_from_mlflow(run_id)
+            traces_to_eval.append({"source": f"mlflow:{run_id}", "metrics": metrics})
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Failed to get trace from MLflow: {e}",
+                "skill_name": skill_name,
+                "run_id": run_id,
+            }
+
+    elif trace_id:
+        try:
+            metrics = get_trace_by_id(trace_id)
+            traces_to_eval.append({"source": f"mlflow-trace:{trace_id}", "metrics": metrics})
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Failed to get trace by ID: {e}",
+                "skill_name": skill_name,
+                "trace_id": trace_id,
+            }
+
+    elif trace_dir:
+        dir_path = Path(trace_dir).expanduser()
+        if not dir_path.is_dir():
+            return {
+                "success": False,
+                "error": f"Trace directory not found: {trace_dir}",
+                "skill_name": skill_name,
+            }
+
+        for jsonl_file in dir_path.glob("*.jsonl"):
+            try:
+                metrics = parse_and_compute_metrics(jsonl_file)
+                traces_to_eval.append({"source": str(jsonl_file), "metrics": metrics})
+            except Exception as e:
+                # Log but continue with other files
+                traces_to_eval.append({"source": str(jsonl_file), "error": str(e), "metrics": None})
+
+        if not traces_to_eval:
+            return {
+                "success": False,
+                "error": f"No .jsonl files found in directory: {trace_dir}",
+                "skill_name": skill_name,
+            }
+
+    # Run scorers on each trace
+    scorers = get_trace_scorers()
+    all_results = []
+    overall_success = True
+    all_violations = []
+
+    for trace_info in traces_to_eval:
+        if trace_info.get("error") or trace_info.get("metrics") is None:
+            all_results.append(
+                {
+                    "source": trace_info["source"],
+                    "success": False,
+                    "error": trace_info.get("error", "No metrics available"),
+                }
+            )
+            overall_success = False
+            continue
+
+        metrics = trace_info["metrics"]
+        trace_dict = metrics.to_dict()
+
+        trace_results = {
+            "source": trace_info["source"],
+            "metrics_summary": {
+                "session_id": metrics.session_id,
+                "total_tokens": metrics.total_tokens,
+                "total_tool_calls": metrics.total_tool_calls,
+                "num_turns": metrics.num_turns,
+                "duration_seconds": metrics.duration_seconds,
+            },
+            "scorer_results": [],
+            "violations": [],
+        }
+
+        for scorer in scorers:
+            try:
+                # Call scorer with trace dict and expectations
+                result = scorer(trace=trace_dict, expectations=expectations)
+
+                scorer_result = {
+                    "name": result.name,
+                    "value": result.value,
+                    "rationale": result.rationale,
+                }
+                trace_results["scorer_results"].append(scorer_result)
+
+                # Track violations
+                if result.value == "no":
+                    trace_results["violations"].append(
+                        {
+                            "scorer": result.name,
+                            "rationale": result.rationale,
+                        }
+                    )
+                    all_violations.append(
+                        {
+                            "source": trace_info["source"],
+                            "scorer": result.name,
+                            "rationale": result.rationale,
+                        }
+                    )
+
+            except Exception as e:
+                trace_results["scorer_results"].append(
+                    {
+                        "name": scorer.__name__ if hasattr(scorer, "__name__") else str(scorer),
+                        "value": "error",
+                        "rationale": str(e),
+                    }
+                )
+
+        # Determine trace success (no violations)
+        trace_results["success"] = len(trace_results["violations"]) == 0
+        if not trace_results["success"]:
+            overall_success = False
+
+        all_results.append(trace_results)
+
+    return {
+        "success": overall_success,
+        "skill_name": skill_name,
+        "traces_evaluated": len(traces_to_eval),
+        "traces_passed": sum(1 for r in all_results if r.get("success", False)),
+        "traces_failed": sum(1 for r in all_results if not r.get("success", True)),
+        "expectations": expectations,
+        "results": all_results,
+        "all_violations": all_violations,
+        "message": (
+            f"Evaluated {len(traces_to_eval)} trace(s) against {skill_name} expectations. "
+            f"{sum(1 for r in all_results if r.get('success', False))} passed, "
+            f"{sum(1 for r in all_results if not r.get('success', True))} failed."
+        ),
+    }
+
+
+def review(
+    skill_name: str,
+    ctx: CLIContext,
+    batch: bool = False,
+    filter_success: bool = False,
+) -> Dict[str, Any]:
+    """Review pending candidates in candidates.yaml.
+
+    Opens an interactive review interface for pending candidates, allowing
+    the reviewer to approve, reject, skip, or edit each candidate. Approved
+    candidates are then promoted to ground_truth.yaml.
+
+    Args:
+        skill_name: Name of the skill to review candidates for
+        ctx: CLI context
+        batch: If True, batch approve all pending candidates without prompts
+        filter_success: If True (with batch), only approve candidates with
+            execution_success=True
+
+    Returns:
+        Dictionary with review results:
+        - success: True if review completed
+        - skill_name: The skill reviewed
+        - reviewed: Number of candidates reviewed
+        - approved: Number approved
+        - rejected: Number rejected
+        - skipped: Number skipped
+        - promoted: Number promoted to ground_truth.yaml
+    """
+    candidates_path = ctx.base_path / skill_name / "candidates.yaml"
+    ground_truth_path = ctx.base_path / skill_name / "ground_truth.yaml"
+
+    if not candidates_path.exists():
+        return {
+            "success": False,
+            "error": f"No candidates.yaml found for skill '{skill_name}'",
+            "path": str(candidates_path),
+            "hint": "Run 'add' first to generate candidates",
+        }
+
+    # Check if there are any pending candidates
+    with open(candidates_path) as f:
+        data = yaml.safe_load(f) or {"candidates": []}
+
+    pending = [c for c in data.get("candidates", []) if c.get("status") == "pending"]
+
+    if not pending:
+        return {
+            "success": True,
+            "skill_name": skill_name,
+            "message": "No pending candidates to review",
+            "reviewed": 0,
+            "approved": 0,
+            "rejected": 0,
+            "skipped": 0,
+            "promoted": 0,
+        }
+
+    if batch:
+        # Batch approve mode
+        def success_filter(c):
+            return c.get("execution_success", False)
+
+        filter_fn = success_filter if filter_success else None
+
+        approved = batch_approve(candidates_path, filter_fn=filter_fn)
+
+        # Promote approved candidates
+        promoted = promote_approved(candidates_path, ground_truth_path)
+
+        return {
+            "success": True,
+            "skill_name": skill_name,
+            "mode": "batch",
+            "filter_success": filter_success,
+            "reviewed": approved,
+            "approved": approved,
+            "rejected": 0,
+            "skipped": len(pending) - approved,
+            "promoted": promoted,
+            "message": f"Batch approved {approved} candidates, promoted {promoted} to ground_truth.yaml",
+        }
+    else:
+        # Interactive review mode
+        stats = review_candidates_file(candidates_path)
+
+        # Promote approved candidates
+        promoted = promote_approved(candidates_path, ground_truth_path)
+
+        return {
+            "success": True,
+            "skill_name": skill_name,
+            "mode": "interactive",
+            "reviewed": stats["approved"] + stats["rejected"] + stats["skipped"],
+            "approved": stats["approved"],
+            "rejected": stats["rejected"],
+            "skipped": stats["skipped"],
+            "promoted": promoted,
+            "message": f"Reviewed {sum(stats.values())} candidates, promoted {promoted} to ground_truth.yaml",
+        }
+
+
+def list_traces(
+    experiment_name: str,
+    ctx: CLIContext,
+    limit: int = 10,
+) -> Dict[str, Any]:
+    """List available trace runs from MLflow.
+
+    Args:
+        experiment_name: MLflow experiment name/path
+        ctx: CLI context
+        limit: Maximum runs to return
+
+    Returns:
+        Dictionary with list of available trace runs
+    """
+    from ..trace.mlflow_integration import list_trace_runs
+
+    try:
+        runs = list_trace_runs(experiment_name, limit=limit)
+        return {
+            "success": True,
+            "experiment_name": experiment_name,
+            "runs": runs,
+            "count": len(runs),
+            "message": f"Found {len(runs)} trace runs in experiment",
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "experiment_name": experiment_name,
+            "hint": "Check experiment name and MLflow connection",
+        }

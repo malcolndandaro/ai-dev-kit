@@ -1,11 +1,13 @@
 """Genie tools - Create, manage, and query Databricks Genie Spaces."""
 
+import os
 from datetime import timedelta
 from typing import Any, Dict, List, Optional
 
 from databricks.sdk import WorkspaceClient
 
 from databricks_tools_core.agent_bricks import AgentBricksManager
+from databricks_tools_core.auth import get_workspace_client
 
 from ..server import mcp
 
@@ -45,16 +47,18 @@ def list_genie() -> List[Dict[str, Any]]:
         ]
     """
     try:
-        w = WorkspaceClient()
+        w = get_workspace_client()
         response = w.genie.list_spaces()
         result = []
         if response.spaces:
             for space in response.spaces:
-                result.append({
-                    "space_id": space.space_id,
-                    "title": space.title or "",
-                    "description": space.description or "",
-                })
+                result.append(
+                    {
+                        "space_id": space.space_id,
+                        "title": space.title or "",
+                        "description": space.description or "",
+                    }
+                )
         return result
     except Exception as e:
         return [{"error": str(e)}]
@@ -108,9 +112,7 @@ def create_or_update_genie(
     if warehouse_id is None:
         warehouse_id = manager.get_best_warehouse_id()
         if warehouse_id is None:
-            return {
-                "error": "No SQL warehouses available. Please provide a warehouse_id or create a warehouse."
-            }
+            return {"error": "No SQL warehouses available. Please provide a warehouse_id or create a warehouse."}
 
     operation = "created"
 
@@ -195,9 +197,7 @@ def get_genie(space_id: str) -> Dict[str, Any]:
 
     # Get sample questions
     questions_response = manager.genie_list_questions(space_id, question_type="SAMPLE_QUESTION")
-    sample_questions = [
-        q.get("question_text", "") for q in questions_response.get("curated_questions", [])
-    ]
+    sample_questions = [q.get("question_text", "") for q in questions_response.get("curated_questions", [])]
 
     return {
         "space_id": result.get("space_id", space_id),
@@ -275,7 +275,7 @@ def ask_genie(
         {"question": "...", "status": "COMPLETED", "sql": "SELECT ...", "data": [[125430.50]], ...}
     """
     try:
-        w = WorkspaceClient()
+        w = get_workspace_client()
         result = w.genie.start_conversation_and_wait(
             space_id=space_id,
             content=question,
@@ -324,7 +324,7 @@ def ask_genie_followup(
         >>> ask_genie_followup(space_id, result["conversation_id"], "Break that down by region")
     """
     try:
-        w = WorkspaceClient()
+        w = get_workspace_client()
         result = w.genie.create_message_and_wait(
             space_id=space_id,
             conversation_id=conversation_id,
@@ -353,9 +353,7 @@ def ask_genie_followup(
 # ============================================================================
 
 
-def _format_genie_response(
-    question: str, genie_message: Any, space_id: str
-) -> Dict[str, Any]:
+def _format_genie_response(question: str, genie_message: Any, space_id: str) -> Dict[str, Any]:
     """Format a Genie SDK response into a clean dictionary.
 
     Args:
@@ -385,7 +383,7 @@ def _format_genie_response(
                 # Fetch actual data (columns and rows)
                 if attachment.attachment_id:
                     try:
-                        w = WorkspaceClient()
+                        w = get_workspace_client()
                         data_result = w.genie.get_message_query_result_by_attachment(
                             space_id=space_id,
                             conversation_id=genie_message.conversation_id,
