@@ -762,6 +762,51 @@ function Install-Skills {
     }
 }
 
+# ─── Install CLAUDE.md ───────────────────────────────────────
+function Install-ClaudeMd {
+    param([string]$BaseDir)
+
+    # Only install for Claude Code
+    if ($script:Tools -notmatch 'claude') { return }
+
+    $src = Join-Path $script:RepoDir "CLAUDE.md"
+    if (-not (Test-Path $src)) { return }
+
+    if ($script:Scope -eq "global") {
+        $dest = Join-Path $env:USERPROFILE ".claude\CLAUDE.md"
+        $destDir = Join-Path $env:USERPROFILE ".claude"
+        if (-not (Test-Path $destDir)) {
+            New-Item -ItemType Directory -Path $destDir -Force | Out-Null
+        }
+    } else {
+        $dest = Join-Path $BaseDir "CLAUDE.md"
+    }
+
+    $newContent = Get-Content $src -Raw
+
+    if (Test-Path $dest) {
+        Copy-Item $dest "$dest.bak" -Force
+        Write-Msg "Backed up CLAUDE.md -> CLAUDE.md.bak"
+
+        $existing = Get-Content $dest -Raw
+        if ($existing -match '<!-- ai-dev-kit:start -->') {
+            # Update: remove old AI Dev Kit section, then append new one
+            $cleaned = $existing -replace '(?s)<!-- ai-dev-kit:start -->.*?<!-- ai-dev-kit:end -->\r?\n?', ''
+            $cleaned = $cleaned.TrimEnd()
+            Set-Content -Path $dest -Value "$cleaned`n`n$newContent" -Encoding UTF8 -NoNewline
+            Write-Ok "CLAUDE.md updated (AI Dev Kit section)"
+        } else {
+            # Append to existing file
+            $existing = $existing.TrimEnd()
+            Set-Content -Path $dest -Value "$existing`n`n$newContent" -Encoding UTF8 -NoNewline
+            Write-Ok "CLAUDE.md updated (AI Dev Kit section appended)"
+        }
+    } else {
+        Set-Content -Path $dest -Value $newContent -Encoding UTF8 -NoNewline
+        Write-Ok "CLAUDE.md created"
+    }
+}
+
 # ─── Write MCP configs ───────────────────────────────────────
 function Write-McpJson {
     param([string]$Path)
@@ -1224,6 +1269,9 @@ function Invoke-Main {
     if ($script:InstallSkills) {
         Install-Skills -BaseDir $baseDir
     }
+
+    # Install CLAUDE.md (project instructions for Claude Code)
+    Install-ClaudeMd -BaseDir $baseDir
 
     # Write MCP configs
     if ($script:InstallMcp) {

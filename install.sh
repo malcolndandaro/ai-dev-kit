@@ -692,6 +692,49 @@ install_skills() {
     done
 }
 
+# Install CLAUDE.md project instructions for Claude Code
+install_claude_md() {
+    local base_dir=$1
+
+    # Only install for Claude Code
+    echo "$TOOLS" | grep -q claude || return
+
+    local src="$REPO_DIR/CLAUDE.md"
+    [ ! -f "$src" ] && return
+
+    local dest
+    if [ "$SCOPE" = "global" ]; then
+        dest="$HOME/.claude/CLAUDE.md"
+        mkdir -p "$HOME/.claude"
+    else
+        dest="$base_dir/CLAUDE.md"
+    fi
+
+    if [ -f "$dest" ]; then
+        cp "$dest" "${dest}.bak"
+        msg "${D}Backed up CLAUDE.md → CLAUDE.md.bak${N}"
+
+        if grep -q "<!-- ai-dev-kit:start -->" "$dest"; then
+            # Update: remove old AI Dev Kit section, then append new one
+            sed '/<!-- ai-dev-kit:start -->/,/<!-- ai-dev-kit:end -->/d' "${dest}.bak" > "$dest"
+            # Remove trailing blank lines before appending
+            sed -i.tmp -e :a -e '/^\n*$/{$d;N;ba' -e '}' "$dest" 2>/dev/null || true
+            rm -f "${dest}.tmp"
+            printf "\n" >> "$dest"
+            cat "$src" >> "$dest"
+            ok "CLAUDE.md updated (AI Dev Kit section)"
+        else
+            # Append to existing file
+            printf "\n" >> "$dest"
+            cat "$src" >> "$dest"
+            ok "CLAUDE.md updated (AI Dev Kit section appended)"
+        fi
+    else
+        cp "$src" "$dest"
+        ok "CLAUDE.md created"
+    fi
+}
+
 # Write MCP configs
 write_mcp_json() {
     local path=$1
@@ -1049,6 +1092,9 @@ main() {
     
     # Install skills
     [ "$INSTALL_SKILLS" = true ] && install_skills "$base_dir"
+
+    # Install CLAUDE.md (project instructions for Claude Code)
+    install_claude_md "$base_dir"
 
     # Write MCP configs
     [ "$INSTALL_MCP" = true ] && write_mcp_configs "$base_dir"
