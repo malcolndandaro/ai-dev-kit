@@ -974,10 +974,14 @@ write_mcp_configs() {
 
 # Save version
 save_version() {
-    # Use -f to fail on HTTP errors (like 404)
-    local ver=$(curl -fsSL "$RAW_URL/VERSION" 2>/dev/null || echo "dev")
-    # Validate version format
-    [[ "$ver" =~ (404|Not Found|error) ]] && ver="dev"
+    local ver=""
+    # Prefer local VERSION file from cloned repo
+    [ -f "$REPO_DIR/VERSION" ] && ver=$(cat "$REPO_DIR/VERSION" 2>/dev/null | tr -d '[:space:]')
+    # Fallback to remote
+    if [ -z "$ver" ]; then
+        ver=$(curl -fsSL --max-time 3 "$RAW_URL/VERSION" 2>/dev/null || echo "dev")
+        [[ "$ver" =~ (404|Not Found|error) ]] && ver="dev"
+    fi
     echo "$ver" > "$INSTALL_DIR/version"
     [ "$SCOPE" = "project" ] && { mkdir -p ".ai-dev-kit"; echo "$ver" > ".ai-dev-kit/version"; }
 }
