@@ -767,10 +767,10 @@ install_hooks() {
 
     # Copy hook files
     mkdir -p "$hooks_dest"
-    for f in skill-activation-prompt.sh skill-activation-prompt.ts package.json tsconfig.json; do
+    for f in skill-activation-prompt.sh skill-activation-prompt.ts package.json tsconfig.json update-check.sh; do
         [ -f "$hooks_src/$f" ] && cp "$hooks_src/$f" "$hooks_dest/$f"
     done
-    chmod +x "$hooks_dest/skill-activation-prompt.sh" 2>/dev/null
+    chmod +x "$hooks_dest/skill-activation-prompt.sh" "$hooks_dest/update-check.sh" 2>/dev/null
     ok "Hook files copied"
 
     # Install npm dependencies
@@ -789,14 +789,15 @@ install_hooks() {
         ok "Skill rules installed"
     fi
 
-    # Configure settings.json with hook
+    # Configure settings.json with hooks
     local hook_cmd='$CLAUDE_PROJECT_DIR/.claude/hooks/skill-activation-prompt.sh'
+    local update_cmd='$CLAUDE_PROJECT_DIR/.claude/hooks/update-check.sh'
 
     if [ -f "$settings_dest" ] && command -v python3 >/dev/null 2>&1; then
-        # Merge hook into existing settings.json
+        # Merge hooks into existing settings.json
         python3 -c "
 import json, sys
-settings_path, hook_cmd = sys.argv[1], sys.argv[2]
+settings_path, hook_cmd, update_cmd = sys.argv[1], sys.argv[2], sys.argv[3]
 try:
     with open(settings_path) as f: cfg = json.load(f)
 except: cfg = {}
@@ -804,9 +805,13 @@ hook_entry = {'hooks': [{'type': 'command', 'command': hook_cmd}]}
 submit_hooks = cfg.setdefault('hooks', {}).setdefault('UserPromptSubmit', [])
 if not any('skill-activation-prompt' in json.dumps(h) for h in submit_hooks):
     submit_hooks.append(hook_entry)
+update_entry = {'matcher': 'startup', 'hooks': [{'type': 'command', 'command': update_cmd, 'timeout': 5}]}
+start_hooks = cfg.setdefault('hooks', {}).setdefault('SessionStart', [])
+if not any('update-check' in json.dumps(h) for h in start_hooks):
+    start_hooks.append(update_entry)
 with open(settings_path, 'w') as f: json.dump(cfg, f, indent=2); f.write('\n')
-" "$settings_dest" "$hook_cmd" 2>/dev/null
-        ok "Settings updated with hook"
+" "$settings_dest" "$hook_cmd" "$update_cmd" 2>/dev/null
+        ok "Settings updated with hooks"
     elif [ ! -f "$settings_dest" ]; then
         # Create new settings.json
         mkdir -p "$(dirname "$settings_dest")"
@@ -822,11 +827,23 @@ with open(settings_path, 'w') as f: json.dump(cfg, f, indent=2); f.write('\n')
           }
         ]
       }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/update-check.sh",
+            "timeout": 5
+          }
+        ]
+      }
     ]
   }
 }
 SETTINGS_EOF
-        ok "Settings created with hook"
+        ok "Settings created with hooks"
     fi
 }
 
