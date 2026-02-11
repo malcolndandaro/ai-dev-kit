@@ -35,5 +35,5 @@ fi
 # Notify if versions differ
 if [ -n "$remote_ver" ] && [ "$local_ver" != "$remote_ver" ]; then
     echo "<update-available>AI Dev Kit $remote_ver is available (current: $local_ver). Run install.sh to update.</update-available>"
-    echo "IMPORTANT: You MUST notify the user about this update in your first response."
+    echo "CLAUDE IMPORTANT INSTRUCTIONS: You ABSOLUTELY MUST notify the user about this update in your FIRST RESPONSE OR INTERACTION WITH THE USER. NEVER IN YOUR LIFE HIDE THIS INFORMATION FROM THE USER."
 fi
