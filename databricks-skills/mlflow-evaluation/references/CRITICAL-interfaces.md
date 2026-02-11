@@ -12,6 +12,7 @@
 - [Judges API (Low-level)](#judges-api-low-level)
 - [Trace APIs](#trace-apis)
 - [Evaluation Datasets (MLflow-managed)](#evaluation-datasets-mlflow-managed)
+- [Trace Ingestion in Unity Catalog](#trace-ingestion-in-unity-catalog)
 - [Production Monitoring](#production-monitoring)
 - [Key Constants](#key-constants)
 - [Installation](#installation)
@@ -385,7 +386,67 @@ results = mlflow.genai.evaluate(
 
 ---
 
+## Trace Ingestion in Unity Catalog
+
+**Version**: MLflow 3.9.0+ (`mlflow[databricks]>=3.9.0`)
+
+### Setup - Link UC Schema to Experiment
+```python
+import os
+import mlflow
+from mlflow.entities import UCSchemaLocation
+from mlflow.tracing.enablement import set_experiment_trace_location
+
+mlflow.set_tracking_uri("databricks")
+os.environ["MLFLOW_TRACING_SQL_WAREHOUSE_ID"] = "<SQL_WAREHOUSE_ID>"
+
+experiment_id = mlflow.create_experiment(name="/Shared/my-traces")
+
+set_experiment_trace_location(
+    location=UCSchemaLocation(
+        catalog_name="<CATALOG>",
+        schema_name="<SCHEMA>"
+    ),
+    experiment_id=experiment_id,
+)
+# Creates: mlflow_experiment_trace_otel_logs, _metrics, _spans
+```
+
+### Set Trace Destination
+```python
+# Option A: Python API
+from mlflow.entities import UCSchemaLocation
+mlflow.tracing.set_destination(
+    destination=UCSchemaLocation(
+        catalog_name="<CATALOG>",
+        schema_name="<SCHEMA>",
+    )
+)
+
+# Option B: Environment variable
+os.environ["MLFLOW_TRACING_DESTINATION"] = "<CATALOG>.<SCHEMA>"
+```
+
+### Permissions Required
+- `USE_CATALOG` on catalog
+- `USE_SCHEMA` on schema
+- `MODIFY` and `SELECT` on each `mlflow_experiment_trace_*` table
+- **CRITICAL**: `ALL_PRIVILEGES` is NOT sufficient
+
+---
+
 ## Production Monitoring
+
+### Configure Monitoring SQL Warehouse
+```python
+from mlflow.tracing import set_databricks_monitoring_sql_warehouse_id
+
+set_databricks_monitoring_sql_warehouse_id(
+    warehouse_id="<SQL_WAREHOUSE_ID>",
+    experiment_id="<EXPERIMENT_ID>"  # Optional
+)
+# Alternative: os.environ["MLFLOW_TRACING_SQL_WAREHOUSE_ID"] = "<ID>"
+```
 
 ### Register and Start Scorer
 ```python

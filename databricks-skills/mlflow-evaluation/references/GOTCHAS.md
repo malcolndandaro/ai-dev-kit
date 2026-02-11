@@ -23,6 +23,10 @@
 - [Wrong Production Monitoring Setup](#-wrong-production-monitoring-setup)
 - [Wrong Custom Judge Model Format](#-wrong-custom-judge-model-format)
 - [Wrong Aggregation Values](#-wrong-aggregation-values)
+- [Wrong Trace Ingestion Setup](#-wrong-trace-ingestion-setup)
+- [Wrong Trace Destination Format](#-wrong-trace-destination-format)
+- [Wrong MLflow Version for Trace Ingestion](#-wrong-mlflow-version-for-trace-ingestion)
+- [Wrong Linking UC Schema Without SQL Warehouse](#-wrong-linking-uc-schema-without-sql-warehouse)
 - [Summary Checklist](#summary-checklist)
 
 ---
@@ -530,6 +534,81 @@ def my_scorer(outputs) -> float:
 
 ---
 
+## ❌ WRONG Trace Ingestion Setup
+
+### WRONG: Using ALL_PRIVILEGES instead of explicit grants
+```sql
+-- ❌ WRONG - ALL_PRIVILEGES does NOT include required permissions
+GRANT ALL_PRIVILEGES ON TABLE my_catalog.my_schema.mlflow_experiment_trace_otel_spans
+  TO `user@company.com`;
+```
+
+### ✅ CORRECT: Grant explicit MODIFY and SELECT
+```sql
+-- ✅ CORRECT - Explicit MODIFY and SELECT required
+GRANT MODIFY, SELECT ON TABLE my_catalog.my_schema.mlflow_experiment_trace_otel_spans
+  TO `user@company.com`;
+GRANT MODIFY, SELECT ON TABLE my_catalog.my_schema.mlflow_experiment_trace_otel_logs
+  TO `user@company.com`;
+GRANT MODIFY, SELECT ON TABLE my_catalog.my_schema.mlflow_experiment_trace_otel_metrics
+  TO `user@company.com`;
+```
+
+---
+
+## ❌ WRONG Trace Destination Format
+
+### WRONG: Wrong format for environment variable
+```python
+# ❌ WRONG - Missing schema or wrong separator
+os.environ["MLFLOW_TRACING_DESTINATION"] = "my_catalog"
+os.environ["MLFLOW_TRACING_DESTINATION"] = "my_catalog/my_schema"
+```
+
+### ✅ CORRECT: Use catalog.schema format
+```python
+# ✅ CORRECT - Dot-separated catalog.schema
+os.environ["MLFLOW_TRACING_DESTINATION"] = "my_catalog.my_schema"
+```
+
+---
+
+## ❌ WRONG MLflow Version for Trace Ingestion
+
+### WRONG: Using MLflow < 3.9.0 for UC trace ingestion
+```bash
+# ❌ WRONG - Trace ingestion requires 3.9.0+
+pip install mlflow[databricks]>=3.1.0
+```
+
+### ✅ CORRECT: Use MLflow 3.9.0+ for UC traces
+```bash
+# ✅ CORRECT
+pip install "mlflow[databricks]>=3.9.0" --upgrade --force-reinstall
+```
+
+---
+
+## ❌ WRONG Linking UC Schema Without SQL Warehouse
+
+### WRONG: Missing SQL warehouse configuration
+```python
+# ❌ WRONG - No SQL warehouse configured
+mlflow.set_tracking_uri("databricks")
+# Missing: os.environ["MLFLOW_TRACING_SQL_WAREHOUSE_ID"] = "..."
+set_experiment_trace_location(location=UCSchemaLocation(...), ...)
+```
+
+### ✅ CORRECT: Set SQL warehouse before linking
+```python
+# ✅ CORRECT - Set warehouse ID first
+mlflow.set_tracking_uri("databricks")
+os.environ["MLFLOW_TRACING_SQL_WAREHOUSE_ID"] = "<SQL_WAREHOUSE_ID>"
+set_experiment_trace_location(location=UCSchemaLocation(...), ...)
+```
+
+---
+
 ## Summary Checklist
 
 Before running evaluation, verify:
@@ -545,3 +624,8 @@ Before running evaluation, verify:
 - [ ] Production scorers have inline imports
 - [ ] Multiple Feedbacks have unique names
 - [ ] Aggregations use valid names: min, max, mean, median, variance, p90
+- [ ] UC trace ingestion uses `mlflow[databricks]>=3.9.0`
+- [ ] UC tables have explicit MODIFY + SELECT grants (not ALL_PRIVILEGES)
+- [ ] `MLFLOW_TRACING_SQL_WAREHOUSE_ID` set before linking UC schema
+- [ ] `MLFLOW_TRACING_DESTINATION` uses `catalog.schema` format (dot-separated)
+- [ ] Production monitoring scorers are both registered AND started

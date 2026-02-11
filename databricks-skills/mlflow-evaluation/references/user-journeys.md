@@ -301,6 +301,107 @@ Before implementing evaluation, confirm:
 
 ---
 
+## Journey 9: "Store Traces in Unity Catalog" - Trace Ingestion & Production Monitoring
+
+**Starting Point**: You want to persist traces in Unity Catalog for long-term analysis, compliance, or production monitoring
+**Goal**: Set up trace ingestion, instrument your app, and enable continuous monitoring
+
+### Prerequisites
+
+- Unity Catalog-enabled workspace
+- "OpenTelemetry on Databricks" preview enabled
+- SQL warehouse with `CAN USE` permissions
+- MLflow 3.9.0+ (`pip install mlflow[databricks]>=3.9.0`)
+- Workspace in `us-east-1` or `us-west-2` (Beta limitation)
+
+### Steps
+
+1. **Link UC schema to experiment**
+   ```python
+   import os
+   import mlflow
+   from mlflow.entities import UCSchemaLocation
+   from mlflow.tracing.enablement import set_experiment_trace_location
+
+   mlflow.set_tracking_uri("databricks")
+   os.environ["MLFLOW_TRACING_SQL_WAREHOUSE_ID"] = "<SQL_WAREHOUSE_ID>"
+
+   experiment_id = mlflow.create_experiment(name="/Shared/my-traces")
+   set_experiment_trace_location(
+       location=UCSchemaLocation(catalog_name="my_catalog", schema_name="my_schema"),
+       experiment_id=experiment_id,
+   )
+   ```
+   This creates three tables: `mlflow_experiment_trace_otel_logs`, `_metrics`, `_spans`
+
+2. **Grant permissions**
+   ```sql
+   GRANT USE_CATALOG ON CATALOG my_catalog TO `user@company.com`;
+   GRANT USE_SCHEMA ON SCHEMA my_catalog.my_schema TO `user@company.com`;
+   GRANT MODIFY, SELECT ON TABLE my_catalog.my_schema.mlflow_experiment_trace_otel_logs TO `user@company.com`;
+   GRANT MODIFY, SELECT ON TABLE my_catalog.my_schema.mlflow_experiment_trace_otel_spans TO `user@company.com`;
+   GRANT MODIFY, SELECT ON TABLE my_catalog.my_schema.mlflow_experiment_trace_otel_metrics TO `user@company.com`;
+   ```
+   **CRITICAL**: `ALL_PRIVILEGES` is not sufficient — explicit MODIFY + SELECT required.
+
+3. **Set trace destination in your app**
+   ```python
+   mlflow.tracing.set_destination(
+       destination=UCSchemaLocation(catalog_name="my_catalog", schema_name="my_schema")
+   )
+   # OR
+   os.environ["MLFLOW_TRACING_DESTINATION"] = "my_catalog.my_schema"
+   ```
+
+4. **Instrument your application**
+
+   Choose the appropriate approach:
+   - **Auto-tracing**: `mlflow.openai.autolog()` (or langchain, anthropic, etc.)
+   - **Manual tracing**: `@mlflow.trace` decorator on functions
+   - **Context manager**: `mlflow.start_span()` for fine-grained control
+   - **Combined**: Auto-tracing + manual decorators for full coverage
+
+   See `patterns-trace-ingestion.md` Patterns 5-8 for detailed examples.
+
+5. **Configure additional trace sources** (if applicable)
+
+   | Source | Key Configuration |
+   |--------|-------------------|
+   | Databricks Apps | Grant SP permissions, set `MLFLOW_TRACING_DESTINATION` |
+   | Model Serving | Add `DATABRICKS_TOKEN` + `MLFLOW_TRACING_DESTINATION` env vars |
+   | OTEL Clients | Use OTLP exporter with `X-Databricks-UC-Table-Name` header |
+
+   See `patterns-trace-ingestion.md` Patterns 9-11 for detailed setup per source.
+
+6. **Enable production monitoring**
+   ```python
+   from mlflow.tracing import set_databricks_monitoring_sql_warehouse_id
+   from mlflow.genai.scorers import Safety, ScorerSamplingConfig
+
+   set_databricks_monitoring_sql_warehouse_id(warehouse_id="<SQL_WAREHOUSE_ID>")
+
+   safety = Safety().register(name="safety_monitor")
+   safety = safety.start(sampling_config=ScorerSamplingConfig(sample_rate=1.0))
+   ```
+
+7. **Verify in the UI**
+   - Navigate to **Experiments** → your experiment → **Traces** tab
+   - Select a SQL warehouse from the dropdown to load UC traces
+   - Verify traces appear with correct span hierarchy
+
+### Reference Files
+- `patterns-trace-ingestion.md` — All setup and instrumentation patterns
+- `CRITICAL-interfaces.md` — Trace ingestion API signatures
+- `GOTCHAS.md` — Common trace ingestion mistakes
+
+### Success Indicators
+- Traces visible in the Experiments UI Traces tab
+- Three UC tables populated with data
+- Production monitoring scorers running and producing assessments
+- No permission errors in trace ingestion
+
+---
+
 ## Quick Reference
 
 ### Which Journey Am I On?
@@ -310,6 +411,7 @@ Before implementing evaluation, confirm:
 | "It was working before" | Journey 3 (Regression) |
 | "It's too slow" | Journey 7 (Performance) |
 | "It's not accurate enough" | Journey 8 (Prompt Optimization) |
+| "I need traces in Unity Catalog" | Journey 9 (Trace Ingestion) |
 
 ### Common Tools Across Journeys
 

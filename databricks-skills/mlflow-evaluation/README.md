@@ -20,6 +20,7 @@ mlflow-evaluation/
     patterns-evaluation.md
     patterns-scorers.md
     patterns-trace-analysis.md
+    patterns-trace-ingestion.md
     user-journeys.md
 ```
 
@@ -31,9 +32,12 @@ mlflow-evaluation/
 - Evaluation dataset creation from in-memory data, production traces, tagged traces, and Unity Catalog tables
 - Trace analysis: span hierarchy, latency profiling, bottleneck detection, error patterns, tool/LLM call analysis
 - Context optimization strategies: tool result management, message history compression, prompt engineering
+- Trace ingestion in Unity Catalog: setup, permissions, destination configuration
+- Application instrumentation: auto-tracing, decorators, context managers, combined approaches
+- Trace sources: Databricks Apps, Model Serving endpoints, third-party OTEL clients
 - Production monitoring with registered scorers and sampling configuration
 - Regression detection and version comparison workflows
-- Common mistakes and gotchas (15+ failure modes documented)
+- Common mistakes and gotchas (19+ failure modes documented)
 
 ## When to Use
 
@@ -46,6 +50,10 @@ mlflow-evaluation/
 - Debugging evaluation failures or unexpected scorer behavior
 - Comparing agent versions to detect regressions
 - Setting up CI/CD quality gates for agent deployments
+- Configuring trace ingestion to Unity Catalog tables
+- Instrumenting applications for tracing (auto, manual, or combined)
+- Sending traces from Databricks Apps, Model Serving, or OTEL clients
+- Enabling production monitoring with scorer sampling
 
 ## Related Skills
 
@@ -60,4 +68,6 @@ mlflow-evaluation/
 - [MLflow GenAI Evaluation Documentation](https://docs.databricks.com/en/mlflow/llm-evaluate.html)
 - [MLflow Scorers Documentation](https://docs.databricks.com/en/mlflow/llm-evaluate-scorers.html)
 - [MLflow Tracing Documentation](https://docs.databricks.com/en/mlflow/mlflow-tracing.html)
+- [MLflow Traces in Unity Catalog](https://docs.databricks.com/aws/en/mlflow3/genai/tracing/trace-unity-catalog)
+- [MLflow App Instrumentation](https://docs.databricks.com/aws/en/mlflow3/genai/tracing/app-instrumentation/)
 - [MLflow Python Package (PyPI)](https://pypi.org/project/mlflow/)

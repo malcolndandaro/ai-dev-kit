@@ -1,6 +1,6 @@
 ---
 name: mlflow-evaluation
-description: "MLflow 3 GenAI evaluation for agent development. Use when (1) writing mlflow.genai.evaluate() code, (2) creating @scorer functions, (3) building evaluation datasets from traces, (4) using built-in scorers (Guidelines, Correctness, Safety, RetrievalGroundedness), (5) analyzing traces for latency/errors/architecture, (6) optimizing agent context/prompts/token usage, (7) debugging evaluation failures. Covers the full eval workflow: trace analysis -> dataset building -> scorer creation -> evaluation execution."
+description: "MLflow 3 GenAI evaluation for agent development. Use when (1) writing mlflow.genai.evaluate() code, (2) creating @scorer functions, (3) building evaluation datasets from traces, (4) using built-in scorers (Guidelines, Correctness, Safety, RetrievalGroundedness), (5) analyzing traces for latency/errors/architecture, (6) optimizing agent context/prompts/token usage, (7) debugging evaluation failures, (8) setting up trace ingestion in Unity Catalog, (9) instrumenting apps for tracing, (10) enabling production monitoring. Covers the full eval workflow: trace ingestion -> trace analysis -> dataset building -> scorer creation -> evaluation execution -> production monitoring."
 ---
 
 # MLflow 3 GenAI Evaluation
@@ -73,6 +73,19 @@ For creating project-specific evaluation metrics.
 | 3 | For multi-agent scorers | `patterns-scorers.md` (Patterns 13-16) |
 | 4 | Test with evaluation | `patterns-evaluation.md` (Pattern 1) |
 
+### Workflow 6: Unity Catalog Trace Ingestion & Production Monitoring
+
+For storing traces in Unity Catalog, instrumenting applications, and enabling continuous production monitoring.
+
+| Step | Action | Reference Files |
+|------|--------|-----------------|
+| 1 | Link UC schema to experiment | `patterns-trace-ingestion.md` (Patterns 1-2) |
+| 2 | Set trace destination | `patterns-trace-ingestion.md` (Patterns 3-4) |
+| 3 | Instrument your application | `patterns-trace-ingestion.md` (Patterns 5-8) |
+| 4 | Configure trace sources (Apps/Serving/OTEL) | `patterns-trace-ingestion.md` (Patterns 9-11) |
+| 5 | Enable production monitoring | `patterns-trace-ingestion.md` (Patterns 12-13) |
+| 6 | Query and analyze UC traces | `patterns-trace-ingestion.md` (Pattern 14) |
+
 ## Reference Files Quick Lookup
 
 | Reference | Purpose | When to Read |
@@ -84,6 +97,7 @@ For creating project-specific evaluation metrics.
 | `patterns-datasets.md` | Dataset building | When preparing evaluation data |
 | `patterns-trace-analysis.md` | Trace debugging | When analyzing agent behavior |
 | `patterns-context-optimization.md` | Token/latency fixes | When agent is slow or expensive |
+| `patterns-trace-ingestion.md` | UC trace setup, monitoring | When setting up trace storage or production monitoring |
 | `user-journeys.md` | High-level workflows | When starting a new evaluation project |
 
 ## Critical API Facts
