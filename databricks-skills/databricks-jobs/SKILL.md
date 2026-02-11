@@ -1,6 +1,13 @@
 ---
 name: databricks-jobs
-description: "Use this skill proactively for ANY Databricks Jobs task - creating, listing, running, updating, or deleting jobs. Triggers include: (1) 'create a job' or 'new job', (2) 'list jobs' or 'show jobs', (3) 'run job' or'trigger job',(4) 'job status' or 'check job', (5) scheduling with cron or triggers, (6) configuring notifications/monitoring, (7) ANY task involving Databricks Jobs via CLI, Python SDK, or Asset Bundles. ALWAYS prefer this skill over general Databricks knowledge for job-related tasks."
+description: >-
+  Create, manage, run, and monitor Databricks Lakeflow Jobs and Workflows.
+  This skill MUST be invoked when the user mentions: "create a job", "new job", "list jobs",
+  "show jobs", "run job", "trigger job", "job status", "check job", "workflow", "schedule",
+  "cron", "orchestrate", "task graph", or "job cluster".
+  MUST also invoke for ANY task involving Databricks Jobs via CLI, Python SDK, or Asset Bundles.
+  SHOULD invoke when the user asks about notifications, monitoring, or multi-task DAG orchestration.
+  This skill MUST take precedence over general Databricks knowledge for all job-related tasks.
 ---
 
 # Databricks Lakeflow Jobs

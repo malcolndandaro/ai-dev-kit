@@ -1,6 +1,11 @@
 ---
 name: synthetic-data-generation
-description: "Generate realistic synthetic data using Faker and Spark, with non-linear distributions, integrity constraints, and save to Databricks. Use when creating test data, demo datasets, or synthetic tables."
+description: >-
+  Generate realistic synthetic data using Faker and Spark with distributions and integrity constraints.
+  This skill MUST be invoked when the user mentions: "synthetic data", "fake data", "test data",
+  "generate data", "sample data", "mock data", "demo data", "seed database", or "populate tables".
+  SHOULD also invoke when the user asks to create realistic datasets for demos, testing,
+  or development environments, or needs data with specific distributions and referential integrity.
 ---
 
 # Synthetic Data Generation

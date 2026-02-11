@@ -1,0 +1,443 @@
+{
+    "version": "1.0",
+    "description": "Skill activation triggers for Claude Code. Controls when skills automatically suggest or block actions.",
+    "skills": {
+        "spark-declarative-pipelines": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "Build Spark Declarative Pipelines (SDP/LDP/DLT)",
+            "promptTriggers": {
+                "keywords": [
+                    "pipeline",
+                    "dlt",
+                    "delta live tables",
+                    "sdp",
+                    "ldp",
+                    "streaming table",
+                    "materialized view",
+                    "medallion",
+                    "bronze",
+                    "silver",
+                    "gold",
+                    "auto loader",
+                    "autoloader",
+                    "cdc",
+                    "change data capture"
+                ],
+                "intentPatterns": [
+                    "(create|build|implement|add|update).*?(pipeline|dlt|streaming table|materialized view)",
+                    "(medallion|lakehouse).*?(architecture|pattern)",
+                    "(ingest|load).*?(data|files|csv|json|parquet)"
+                ]
+            }
+        },
+        "databricks-jobs": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "Create and manage Databricks Jobs and Workflows",
+            "promptTriggers": {
+                "keywords": [
+                    "job",
+                    "workflow",
+                    "schedule",
+                    "orchestrat",
+                    "task graph",
+                    "run now",
+                    "job cluster",
+                    "cron"
+                ],
+                "intentPatterns": [
+                    "(create|build|schedule|run|trigger|monitor).*?(job|workflow|task)",
+                    "(orchestrat).*?(pipeline|notebook|task)"
+                ]
+            }
+        },
+        "aibi-dashboards": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "Build AI/BI dashboards on Databricks",
+            "promptTriggers": {
+                "keywords": [
+                    "dashboard",
+                    "ai/bi",
+                    "aibi",
+                    "visualization",
+                    "chart",
+                    "report",
+                    "lakeview"
+                ],
+                "intentPatterns": [
+                    "(create|build|design|update).*?(dashboard|chart|visualization|report)",
+                    "(publish|share).*?dashboard"
+                ]
+            }
+        },
+        "agent-bricks": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "Build AI agents (Knowledge Assistant, Genie, Multi-Agent Supervisor)",
+            "promptTriggers": {
+                "keywords": [
+                    "agent",
+                    "knowledge assistant",
+                    "genie space",
+                    "multi-agent",
+                    "mas",
+                    "rag",
+                    "chatbot",
+                    "conversational"
+                ],
+                "intentPatterns": [
+                    "(create|build|deploy).*?(agent|assistant|chatbot|genie)",
+                    "(knowledge|retrieval).*?(assistant|augmented|search)",
+                    "(multi.?agent|supervisor|orchestrat).*?(system|agent)"
+                ]
+            }
+        },
+        "asset-bundles": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "Deploy with Databricks Asset Bundles (DABs)",
+            "promptTriggers": {
+                "keywords": [
+                    "asset bundle",
+                    "dab",
+                    "dabs",
+                    "bundle deploy",
+                    "bundle run",
+                    "databricks.yml",
+                    "ci/cd",
+                    "deployment"
+                ],
+                "intentPatterns": [
+                    "(deploy|bundle|package).*?(pipeline|job|dashboard|app)",
+                    "(create|init|setup).*?(bundle|dab|deployment)",
+                    "(ci|cd|cicd).*?(pipeline|deploy)"
+                ]
+            }
+        },
+        "databricks-unity-catalog": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "Unity Catalog governance, schemas, tables, volumes",
+            "promptTriggers": {
+                "keywords": [
+                    "unity catalog",
+                    "catalog",
+                    "schema",
+                    "volume",
+                    "grant",
+                    "permission",
+                    "governance",
+                    "lineage",
+                    "data access",
+                    "external location"
+                ],
+                "intentPatterns": [
+                    "(create|manage|grant|revoke).*?(catalog|schema|table|volume|permission)",
+                    "(governance|lineage|audit).*?(data|table|catalog)",
+                    "(access control|rbac).*?(unity|catalog|table)"
+                ]
+            }
+        },
+        "model-serving": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "Deploy and manage ML model serving endpoints",
+            "promptTriggers": {
+                "keywords": [
+                    "model serving",
+                    "serving endpoint",
+                    "deploy model",
+                    "inference",
+                    "mlflow",
+                    "foundation model",
+                    "fmapi"
+                ],
+                "intentPatterns": [
+                    "(deploy|serve|create).*?(model|endpoint|serving)",
+                    "(query|call|invoke).*?(serving|endpoint|model)",
+                    "(scale|monitor).*?(endpoint|serving)"
+                ]
+            }
+        },
+        "vector-search": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "Build semantic search with Databricks Vector Search",
+            "promptTriggers": {
+                "keywords": [
+                    "vector search",
+                    "embedding",
+                    "semantic search",
+                    "similarity",
+                    "vector index",
+                    "vector store"
+                ],
+                "intentPatterns": [
+                    "(create|build|setup).*?(vector|embedding|semantic).*?(search|index|store)",
+                    "(query|search).*?(vector|embedding|similar)"
+                ]
+            }
+        },
+        "synthetic-data-generation": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "medium",
+            "description": "Generate synthetic test/demo data",
+            "promptTriggers": {
+                "keywords": [
+                    "synthetic data",
+                    "fake data",
+                    "test data",
+                    "generate data",
+                    "sample data",
+                    "mock data",
+                    "demo data"
+                ],
+                "intentPatterns": [
+                    "(generate|create|make).*?(synthetic|fake|test|sample|mock|demo).*?data",
+                    "(populate|seed).*?(table|database|catalog)"
+                ]
+            }
+        },
+        "mlflow-evaluation": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "medium",
+            "description": "Evaluate GenAI agents with MLflow",
+            "promptTriggers": {
+                "keywords": [
+                    "evaluate",
+                    "evaluation",
+                    "mlflow",
+                    "metrics",
+                    "benchmark",
+                    "quality",
+                    "trace"
+                ],
+                "intentPatterns": [
+                    "(evaluate|test|benchmark|measure).*?(agent|model|rag|quality)",
+                    "(mlflow).*?(eval|log|track|trace)"
+                ]
+            }
+        },
+        "databricks-app-python": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "medium",
+            "description": "Build Python apps (Dash/Streamlit) on Databricks",
+            "promptTriggers": {
+                "keywords": [
+                    "dash app",
+                    "streamlit",
+                    "databricks app",
+                    "plotly dash",
+                    "web app"
+                ],
+                "intentPatterns": [
+                    "(create|build|deploy).*?(dash|streamlit|web).*?app",
+                    "(databricks).*?(app|application)"
+                ]
+            }
+        },
+        "databricks-app-apx": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "medium",
+            "description": "Build full-stack apps (FastAPI + React) on Databricks",
+            "promptTriggers": {
+                "keywords": [
+                    "apx",
+                    "fastapi react",
+                    "full-stack app",
+                    "fullstack app"
+                ],
+                "intentPatterns": [
+                    "(create|build).*?(fastapi|full.?stack).*?(app|react)",
+                    "(apx).*?(app|template|scaffold)"
+                ]
+            }
+        },
+        "databricks-genie": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "medium",
+            "description": "Use Genie for natural language to SQL",
+            "promptTriggers": {
+                "keywords": [
+                    "genie",
+                    "natural language sql",
+                    "nl2sql",
+                    "ask genie",
+                    "text to sql"
+                ],
+                "intentPatterns": [
+                    "(ask|query|use).*?genie",
+                    "(natural language|nl).*?(sql|query)"
+                ]
+            }
+        },
+        "lakebase-provisioned": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "medium",
+            "description": "Work with Lakebase (PostgreSQL-compatible) on Databricks",
+            "promptTriggers": {
+                "keywords": [
+                    "lakebase",
+                    "postgresql",
+                    "postgres",
+                    "operational database",
+                    "transactional"
+                ],
+                "intentPatterns": [
+                    "(create|setup|provision).*?(lakebase|postgres|database instance)",
+                    "(lakebase|operational).*?(database|workload)"
+                ]
+            }
+        },
+        "spark-structured-streaming": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "medium",
+            "description": "Build Spark Structured Streaming pipelines",
+            "promptTriggers": {
+                "keywords": [
+                    "structured streaming",
+                    "spark streaming",
+                    "kafka",
+                    "event hub",
+                    "kinesis",
+                    "real-time",
+                    "realtime",
+                    "stream processing",
+                    "watermark",
+                    "trigger"
+                ],
+                "intentPatterns": [
+                    "(create|build|implement).*?(streaming|real.?time).*?(pipeline|job|app)",
+                    "(consume|read|ingest).*?(kafka|event hub|kinesis|stream)"
+                ]
+            }
+        },
+        "databricks-config": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "low",
+            "description": "Set up Databricks authentication and CLI configuration",
+            "promptTriggers": {
+                "keywords": [
+                    "databricks auth",
+                    "databricks login",
+                    "databricks config",
+                    "databricks cli",
+                    "workspace url",
+                    "token",
+                    "oauth"
+                ],
+                "intentPatterns": [
+                    "(setup|configure|auth).*?(databricks|workspace|cli)",
+                    "(login|connect).*?databricks"
+                ]
+            }
+        },
+        "databricks-python-sdk": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "medium",
+            "description": "Databricks SDK, Connect, CLI, and REST API patterns",
+            "promptTriggers": {
+                "keywords": [
+                    "databricks sdk",
+                    "databricks connect",
+                    "workspace client",
+                    "databricks api",
+                    "rest api",
+                    "dbutils"
+                ],
+                "intentPatterns": [
+                    "(use|call|invoke).*?(databricks sdk|workspace client|rest api)",
+                    "(databricks).*?(sdk|api|client|connect)"
+                ]
+            }
+        },
+        "databricks-docs": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "low",
+            "description": "Look up Databricks documentation",
+            "promptTriggers": {
+                "keywords": [
+                    "databricks docs",
+                    "documentation",
+                    "reference",
+                    "how does databricks"
+                ],
+                "intentPatterns": [
+                    "(look up|find|check).*?(docs|documentation|reference).*?databricks",
+                    "(how does|what is|explain).*?databricks.*?(feature|concept|service)"
+                ]
+            }
+        },
+        "unstructured-pdf-generation": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "low",
+            "description": "Generate synthetic PDFs for RAG testing",
+            "promptTriggers": {
+                "keywords": [
+                    "generate pdf",
+                    "synthetic pdf",
+                    "test pdf",
+                    "pdf generation",
+                    "rag test data"
+                ],
+                "intentPatterns": [
+                    "(generate|create|make).*?(pdf|document).*?(test|rag|synthetic)",
+                    "(pdf).*?(generation|synthetic|test)"
+                ]
+            }
+        },
+        "python-dev": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "low",
+            "description": "Python development guidance and best practices",
+            "promptTriggers": {
+                "keywords": [
+                    "python best practice",
+                    "pep 8",
+                    "type hints",
+                    "pytest",
+                    "python testing"
+                ],
+                "intentPatterns": [
+                    "(python).*?(best practice|standard|convention|pattern)",
+                    "(write|review).*?(python|test).*?(code|function|class)"
+                ]
+            }
+        }
+    },
+    "notes": {
+        "enforcement_types": {
+            "suggest": "Skill suggestion appears but doesn't block execution",
+            "block": "Requires skill to be used before proceeding (guardrail)",
+            "warn": "Shows warning but allows proceeding"
+        },
+        "priority_levels": {
+            "critical": "Highest - Always trigger when matched",
+            "high": "Important - Trigger for most matches",
+            "medium": "Moderate - Trigger for clear matches",
+            "low": "Optional - Trigger only for explicit matches"
+        }
+    }
+}

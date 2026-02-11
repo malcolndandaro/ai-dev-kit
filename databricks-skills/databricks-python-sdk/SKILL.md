@@ -1,6 +1,12 @@
 ---
 name: databricks-python-sdk
-description: "Databricks development guidance including Python SDK, Databricks Connect, CLI, and REST API. Use when working with databricks-sdk, databricks-connect, or Databricks APIs."
+description: >-
+  Databricks development guidance for Python SDK, Databricks Connect, CLI, and REST API.
+  This skill MUST be invoked when the user mentions: "databricks SDK", "databricks-sdk",
+  "WorkspaceClient", "databricks connect", "databricks API", "REST API", or "dbutils".
+  SHOULD also invoke when the user writes Python code that imports from databricks.sdk,
+  or asks how to programmatically interact with Databricks resources (clusters, jobs, warehouses, UC)
+  via code rather than the UI.
 ---
 
 # Databricks Development Guide

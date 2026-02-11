@@ -1,6 +1,13 @@
 ---
 name: model-serving
-description: "Deploy and query Databricks Model Serving endpoints. Use when (1) deploying MLflow models or AI agents to endpoints, (2) creating ChatAgent/ResponsesAgent agents, (3) integrating UC Functions or Vector Search tools, (4) querying deployed endpoints, (5) checking endpoint status. Covers classical ML models, custom pyfunc, and GenAI agents."
+description: >-
+  Deploy and query Databricks Model Serving endpoints for ML models and AI agents.
+  This skill MUST be invoked when the user mentions: "model serving", "serving endpoint",
+  "deploy model", "deploy agent", "ChatAgent", "ResponsesAgent", "inference",
+  "foundation model API", "FMAPI", "endpoint status", or "query endpoint".
+  MUST also invoke when the user asks to create, update, or scale a serving endpoint.
+  SHOULD invoke when the user asks about integrating UC Functions or Vector Search tools
+  into served agents, or deploying custom pyfunc models.
 ---
 
 # Databricks Model Serving

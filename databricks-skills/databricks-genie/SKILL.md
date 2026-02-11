@@ -1,6 +1,11 @@
 ---
 name: databricks-genie
-description: "Create and query Databricks Genie Spaces for natural language SQL exploration. Use when building Genie Spaces or asking questions via the Genie Conversation API."
+description: >-
+  Create and query Databricks Genie Spaces for natural language SQL exploration.
+  This skill MUST be invoked when the user mentions: "Genie", "Genie Space", "ask Genie",
+  "natural language SQL", "NL2SQL", "text to SQL", or "Genie Conversation API".
+  SHOULD also invoke when the user wants to build a natural language interface over their data tables
+  or asks about querying data using plain English.
 ---
 
 # Databricks Genie

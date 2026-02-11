@@ -1,6 +1,12 @@
 ---
 name: asset-bundles
-description: "Create and configure Databricks Asset Bundles (DABs) with best practices for multi-environment deployments. Use when working with: (1) Creating new DAB projects, (2) Adding resources (dashboards, pipelines, jobs, alerts), (3) Configuring multi-environment deployments, (4) Setting up permissions, (5) Deploying or running bundle resources"
+description: >-
+  Create and configure Databricks Asset Bundles (DABs) for multi-environment deployments.
+  This skill MUST be invoked when the user mentions: "asset bundle", "DAB", "DABs", "bundle deploy",
+  "bundle run", "databricks.yml", "bundle init", or "bundle validate".
+  MUST also invoke when the user asks to deploy pipelines/jobs/dashboards to dev/staging/prod environments.
+  SHOULD invoke when the user mentions "CI/CD" or "deployment" in the context of Databricks resources,
+  or asks about permissions and environment-specific configuration for bundles.
 ---
 
 # Databricks Asset Bundle (DABs) Writer

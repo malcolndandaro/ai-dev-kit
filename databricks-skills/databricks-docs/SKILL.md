@@ -1,6 +1,11 @@
 ---
 name: databricks-docs
-description: "Databricks documentation reference. Use as a lookup resource alongside other skills and MCP tools for comprehensive guidance."
+description: >-
+  Databricks documentation index and reference lookup.
+  This skill SHOULD be invoked as a supplementary resource when other Databricks skills are active
+  and additional documentation context is needed. MAY be invoked when the user asks:
+  "where is the docs for...", "look up Databricks docs", "find documentation on...",
+  or "how does Databricks X work" when no other domain-specific skill covers the topic.
 ---
 
 # Databricks Documentation Reference

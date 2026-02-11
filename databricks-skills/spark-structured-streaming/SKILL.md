@@ -1,6 +1,12 @@
 ---
 name: spark-structured-streaming
-description: Comprehensive guide to Spark Structured Streaming for production workloads. Use when building streaming pipelines, implementing real-time data processing, handling stateful operations, or optimizing streaming performance.
+description: >-
+  Production guide for Spark Structured Streaming pipelines and stateful operations.
+  This skill MUST be invoked when the user mentions: "structured streaming", "spark streaming",
+  "readStream", "writeStream", "Kafka", "Event Hub", "Kinesis", "real-time processing",
+  "watermark", "trigger", "foreachBatch", or "stream-to-stream join".
+  SHOULD also invoke when the user asks about stateful aggregations, streaming deduplication,
+  output modes (append/complete/update), or optimizing streaming checkpoint/throughput performance.
 ---
 
 # Spark Structured Streaming

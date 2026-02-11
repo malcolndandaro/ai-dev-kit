@@ -1,6 +1,11 @@
 ---
 name: unstructured-pdf-generation
-description: "Generate synthetic PDF documents for RAG and unstructured data use cases. Use when creating test PDFs, demo documents, or evaluation datasets for retrieval systems."
+description: >-
+  Generate synthetic PDF documents for RAG and unstructured data use cases.
+  This skill MUST be invoked when the user mentions: "generate PDF", "synthetic PDF", "test PDF",
+  "PDF generation", "RAG test data", "demo documents", or "evaluation dataset for retrieval".
+  SHOULD also invoke when the user asks to create realistic unstructured documents for testing
+  document parsing, chunking strategies, or retrieval-augmented generation pipelines.
 ---
 
 # Unstructured PDF Generation

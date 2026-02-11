@@ -1,6 +1,12 @@
 ---
 name: databricks-unity-catalog
-description: "Unity Catalog system tables and volumes. Use when querying system tables (audit, lineage, billing) or working with volume file operations (upload, download, list files in /Volumes/)."
+description: >-
+  Unity Catalog governance, system tables, and volume file operations.
+  This skill MUST be invoked when the user mentions: "Unity Catalog", "system tables", "audit log",
+  "lineage", "billing tables", "volumes", "/Volumes/", "catalog", "schema", "grants", or "permissions".
+  MUST also invoke when the user asks to upload/download/list files in volumes,
+  query system.access.audit or system.billing tables, or manage UC object permissions.
+  SHOULD invoke when the user asks about data governance, access control, or data lineage on Databricks.
 ---
 
 # Unity Catalog

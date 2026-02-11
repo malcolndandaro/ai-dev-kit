@@ -1,6 +1,12 @@
 ---
 name: vector-search
-description: "Patterns for Databricks Vector Search: create endpoints and indexes, query with filters, manage embeddings. Use when building RAG applications, semantic search, or similarity matching. Covers both storage-optimized and standard endpoints."
+description: >-
+  Patterns for Databricks Vector Search: endpoints, indexes, queries, and embeddings.
+  This skill MUST be invoked when the user mentions: "vector search", "vector index",
+  "embedding", "semantic search", "similarity search", "vector store", or "vector endpoint".
+  MUST also invoke when the user asks to create or query a vector search index.
+  SHOULD invoke when the user is building RAG applications that need a retrieval component,
+  or asks about storage-optimized vs standard endpoints, or filtering strategies for vector queries.
 ---
 
 # Databricks Vector Search

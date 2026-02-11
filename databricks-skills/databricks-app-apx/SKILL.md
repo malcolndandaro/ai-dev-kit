@@ -1,6 +1,11 @@
 ---
 name: databricks-app-apx
-description: "Build full-stack Databricks applications using APX framework (FastAPI + React)."
+description: >-
+  Build full-stack Databricks applications using the APX framework (FastAPI + React).
+  This skill MUST be invoked when the user mentions: "APX", "FastAPI React app", "full-stack Databricks app",
+  "fullstack app", or "FastAPI + React".
+  SHOULD also invoke when the user asks to build a web application on Databricks that requires
+  both a backend API and a frontend UI, or mentions building a Databricks App with React.
 ---
 
 # Databricks APX Application

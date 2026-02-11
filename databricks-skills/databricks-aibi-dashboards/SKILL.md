@@ -1,6 +1,11 @@
 ---
 name: databricks-aibi-dashboards
-description: "Create Databricks AI/BI dashboards. CRITICAL: You MUST test ALL SQL queries via execute_sql BEFORE deploying. Follow guidelines strictly."
+description: >-
+  Create and manage Databricks AI/BI dashboards (formerly Lakeview).
+  This skill MUST be invoked when the user mentions: "dashboard", "create a dashboard", "AI/BI", "AIBI",
+  "lakeview", "visualization", "chart", "report", or "data viz".
+  SHOULD also invoke when the user asks to display query results visually, build analytics views,
+  or publish interactive reports. MUST test ALL SQL queries via execute_sql BEFORE deploying any dashboard.
 ---
 
 # AI/BI Dashboard Skill

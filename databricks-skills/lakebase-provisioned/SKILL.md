@@ -1,6 +1,11 @@
 ---
 name: lakebase-provisioned
-description: "Patterns and best practices for using Lakebase Provisioned (Databricks managed PostgreSQL) for OLTP workloads."
+description: >-
+  Patterns and best practices for Lakebase Provisioned (Databricks managed PostgreSQL).
+  This skill MUST be invoked when the user mentions: "Lakebase", "PostgreSQL on Databricks",
+  "Postgres", "OLTP", "operational database", "transactional workload", or "database instance".
+  SHOULD also invoke when the user asks about provisioning a relational database on Databricks,
+  generating database credentials, or building applications that need low-latency transactional access.
 ---
 
 # Lakebase Provisioned

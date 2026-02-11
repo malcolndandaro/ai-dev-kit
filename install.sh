@@ -60,7 +60,7 @@ MIN_SDK_VERSION="0.85.0"
 G='\033[0;32m' Y='\033[1;33m' R='\033[0;31m' BL='\033[0;34m' B='\033[1m' D='\033[2m' N='\033[0m'
 
 # Databricks skills (bundled in repo)
-SKILLS="agent-bricks asset-bundles databricks-aibi-dashboards databricks-app-apx databricks-app-python databricks-config databricks-dbsql databricks-docs databricks-genie databricks-jobs databricks-python-sdk databricks-unity-catalog lakebase-provisioned model-serving spark-declarative-pipelines synthetic-data-generation unstructured-pdf-generation zerobus-ingest"
+SKILLS="agent-bricks asset-bundles databricks-aibi-dashboards databricks-app-apx databricks-app-python databricks-config databricks-dbsql databricks-docs databricks-genie databricks-jobs databricks-python-sdk databricks-unity-catalog lakebase-provisioned mlflow-evaluation model-serving spark-declarative-pipelines spark-structured-streaming synthetic-data-generation unstructured-pdf-generation vector-search zerobus-ingest"
 
 # MLflow skills (fetched from mlflow/skills repo)
 MLFLOW_SKILLS="agent-evaluation analyze-mlflow-chat-session analyze-mlflow-trace instrumenting-with-mlflow-tracing mlflow-onboarding querying-mlflow-metrics retrieving-mlflow-traces searching-mlflow-docs"
@@ -735,6 +735,101 @@ install_claude_md() {
     fi
 }
 
+# Install skill-activation hooks (Claude Code only)
+install_hooks() {
+    local base_dir=$1
+
+    # Only install for Claude Code
+    echo "$TOOLS" | grep -q claude || return
+
+    local hooks_src="$REPO_DIR/claude-hooks"
+    [ ! -d "$hooks_src" ] && return
+
+    step "Installing skill-activation hooks"
+
+    local hooks_dest settings_dest skills_dest
+    if [ "$SCOPE" = "global" ]; then
+        hooks_dest="$HOME/.claude/hooks"
+        settings_dest="$HOME/.claude/settings.json"
+        skills_dest="$HOME/.claude/skills"
+    else
+        hooks_dest="$base_dir/.claude/hooks"
+        settings_dest="$base_dir/.claude/settings.json"
+        skills_dest="$base_dir/.claude/skills"
+    fi
+
+    # Check node/npm for hooks runtime
+    if ! command -v node >/dev/null 2>&1; then
+        warn "Node.js not found — skill-activation hooks require Node.js"
+        msg "  Install Node.js, then run: ${B}cd $hooks_dest && npm install${N}"
+        return
+    fi
+
+    # Copy hook files
+    mkdir -p "$hooks_dest"
+    for f in skill-activation-prompt.sh skill-activation-prompt.ts package.json tsconfig.json; do
+        [ -f "$hooks_src/$f" ] && cp "$hooks_src/$f" "$hooks_dest/$f"
+    done
+    chmod +x "$hooks_dest/skill-activation-prompt.sh" 2>/dev/null
+    ok "Hook files copied"
+
+    # Install npm dependencies
+    if command -v npm >/dev/null 2>&1; then
+        (cd "$hooks_dest" && npm install --silent 2>/dev/null)
+        ok "Hook dependencies installed"
+    else
+        warn "npm not found — run ${B}cd $hooks_dest && npm install${N} manually"
+    fi
+
+    # Copy skill-rules.json
+    local rules_src="$REPO_DIR/claude-hooks/skill-rules.json"
+    if [ -f "$rules_src" ]; then
+        mkdir -p "$skills_dest"
+        cp "$rules_src" "$skills_dest/skill-rules.json"
+        ok "Skill rules installed"
+    fi
+
+    # Configure settings.json with hook
+    local hook_cmd='$CLAUDE_PROJECT_DIR/.claude/hooks/skill-activation-prompt.sh'
+
+    if [ -f "$settings_dest" ] && command -v python3 >/dev/null 2>&1; then
+        # Merge hook into existing settings.json
+        python3 -c "
+import json, sys
+settings_path, hook_cmd = sys.argv[1], sys.argv[2]
+try:
+    with open(settings_path) as f: cfg = json.load(f)
+except: cfg = {}
+hook_entry = {'hooks': [{'type': 'command', 'command': hook_cmd}]}
+submit_hooks = cfg.setdefault('hooks', {}).setdefault('UserPromptSubmit', [])
+if not any('skill-activation-prompt' in json.dumps(h) for h in submit_hooks):
+    submit_hooks.append(hook_entry)
+with open(settings_path, 'w') as f: json.dump(cfg, f, indent=2); f.write('\n')
+" "$settings_dest" "$hook_cmd" 2>/dev/null
+        ok "Settings updated with hook"
+    elif [ ! -f "$settings_dest" ]; then
+        # Create new settings.json
+        mkdir -p "$(dirname "$settings_dest")"
+        cat > "$settings_dest" << 'SETTINGS_EOF'
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/skill-activation-prompt.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
+SETTINGS_EOF
+        ok "Settings created with hook"
+    fi
+}
+
 # Write MCP configs
 write_mcp_json() {
     local path=$1
@@ -1095,6 +1190,9 @@ main() {
 
     # Install CLAUDE.md (project instructions for Claude Code)
     install_claude_md "$base_dir"
+
+    # Install skill-activation hooks (Claude Code only)
+    [ "$INSTALL_SKILLS" = true ] && install_hooks "$base_dir"
 
     # Write MCP configs
     [ "$INSTALL_MCP" = true ] && write_mcp_configs "$base_dir"

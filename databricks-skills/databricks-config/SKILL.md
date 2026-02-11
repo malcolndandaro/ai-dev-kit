@@ -1,6 +1,12 @@
 ---
 name: databricks-config
-description: Configure Databricks profile and authenticate for Databricks Connect, Databricks CLI, and Databricks SDK.
+description: >-
+  Configure Databricks authentication profiles for Connect, CLI, and SDK.
+  This skill MUST be invoked when the user mentions: "databricks auth", "databricks login",
+  "databricks config", "databricks profile", ".databrickscfg", "workspace URL", or "configure CLI".
+  MUST also invoke when the user asks to set up authentication, connect to a workspace,
+  or troubleshoot Databricks credential/token issues.
+  SHOULD invoke when the user mentions OAuth, PAT tokens, or service principal setup for Databricks.
 ---
 
 Configure the Databricks profile in ~/.databrickscfg for use with Databricks Connect.

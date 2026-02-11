@@ -1,6 +1,11 @@
 ---
 name: agent-bricks
-description: "Create and manage Databricks Agent Bricks: Knowledge Assistants (KA) for document Q&A, Genie Spaces for SQL exploration, and Multi-Agent Supervisors (MAS) for multi-agent orchestration. Use when building conversational AI applications on Databricks."
+description: >-
+  Create and manage Databricks Agent Bricks: Knowledge Assistants (KA), Genie Spaces, and Multi-Agent Supervisors (MAS).
+  This skill MUST be invoked when the user mentions: "build an agent", "knowledge assistant", "KA", "genie space",
+  "multi-agent", "MAS", "chatbot", "conversational AI", "document Q&A", or "agent orchestration".
+  SHOULD also invoke when the user asks about RAG applications, retrieval-augmented generation with agents,
+  or connecting AI agents to Unity Catalog tools.
 ---
 
 # Agent Bricks

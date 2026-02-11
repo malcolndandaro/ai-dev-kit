@@ -1,6 +1,13 @@
 ---
 name: spark-declarative-pipelines
-description: "Creates, configures, and updates Databricks Lakeflow Spark Declarative Pipelines (SDP/LDP) using serverless compute. Handles streaming tables, materialized views, CDC, SCD Type 2, and Auto Loader ingestion patterns. Use when building data pipelines, working with Delta Live Tables, ingesting streaming data, implementing change data capture, or when the user mentions SDP, LDP, DLT, Lakeflow pipelines, streaming tables, or bronze/silver/gold medallion architectures."
+description: >-
+  Create, configure, and update Databricks Lakeflow Spark Declarative Pipelines (SDP/LDP) on serverless compute.
+  This skill MUST be invoked when the user mentions: "pipeline", "SDP", "LDP", "DLT",
+  "Delta Live Tables", "Lakeflow pipeline", "streaming table", "materialized view",
+  "Auto Loader", "autoloader", "CDC", "change data capture", "SCD Type 2",
+  "bronze", "silver", "gold", or "medallion architecture".
+  MUST also invoke when the user asks to build data ingestion pipelines or transform data across layers.
+  SHOULD invoke when the user asks about data quality expectations/constraints within pipelines.
 ---
 
 # Lakeflow Spark Declarative Pipelines (SDP)
