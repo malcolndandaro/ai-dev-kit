@@ -118,8 +118,8 @@ while [ $# -gt 0 ]; do
 done
 
 # Set configuration URLs after parsing branch argument
-REPO_URL="https://github.com/databricks-solutions/ai-dev-kit.git"
-RAW_URL="https://raw.githubusercontent.com/databricks-solutions/ai-dev-kit/${BRANCH}"
+REPO_URL="${DEVKIT_REPO_URL:-https://github.com/databricks-solutions/ai-dev-kit.git}"
+RAW_URL="${DEVKIT_RAW_URL:-https://raw.githubusercontent.com/databricks-solutions/ai-dev-kit/${BRANCH}}"
 INSTALL_DIR="${AIDEVKIT_HOME:-$HOME/.ai-dev-kit}"
 REPO_DIR="$INSTALL_DIR/repo"
 VENV_DIR="$INSTALL_DIR/.venv"
