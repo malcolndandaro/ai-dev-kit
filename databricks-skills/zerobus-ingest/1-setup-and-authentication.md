@@ -150,7 +150,9 @@ If your client application sits behind a firewall, you must allowlist the Zerobu
 
 ## Supported Regions
 
-Workspace and target tables must reside in one of these regions:
+Workspace and target tables must reside in a supported region for your cloud provider.
+
+### AWS
 
 | Region Code | Location |
 |-------------|----------|
@@ -163,6 +165,22 @@ Workspace and target tables must reside in one of these regions:
 | `ap-southeast-2` | Asia Pacific (Sydney) |
 | `ap-northeast-1` | Asia Pacific (Tokyo) |
 | `ca-central-1` | Canada (Central) |
+
+### Azure
+
+| Region Code | Location |
+|-------------|----------|
+| `canadacentral` | Canada Central |
+| `westus` | West US |
+| `eastus` | East US |
+| `eastus2` | East US 2 |
+| `centralus` | Central US |
+| `northcentralus` | North Central US |
+| `swedencentral` | Sweden Central |
+| `westeurope` | West Europe |
+| `northeurope` | North Europe |
+| `australiaeast` | Australia East |
+| `southeastasia` | Southeast Asia |
 
 ---
 

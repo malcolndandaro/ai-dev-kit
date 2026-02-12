@@ -153,7 +153,9 @@ If you need higher throughput than a single stream provides:
 
 ## Regional Availability
 
-Workspace and target tables must be in a supported region:
+Workspace and target tables must be in a supported region for your cloud provider.
+
+### AWS Supported Regions
 
 | Region | Code |
 |--------|------|
@@ -166,6 +168,22 @@ Workspace and target tables must be in a supported region:
 | Asia Pacific (Sydney) | `ap-southeast-2` |
 | Asia Pacific (Tokyo) | `ap-northeast-1` |
 | Canada (Central) | `ca-central-1` |
+
+### Azure Supported Regions
+
+| Region | Code |
+|--------|------|
+| Canada Central | `canadacentral` |
+| West US | `westus` |
+| East US | `eastus` |
+| East US 2 | `eastus2` |
+| Central US | `centralus` |
+| North Central US | `northcentralus` |
+| Sweden Central | `swedencentral` |
+| West Europe | `westeurope` |
+| North Europe | `northeurope` |
+| Australia East | `australiaeast` |
+| Southeast Asia | `southeastasia` |
 
 **Performance note:** Optimal throughput requires the client application and Zerobus endpoint to be in the **same region**.
 
