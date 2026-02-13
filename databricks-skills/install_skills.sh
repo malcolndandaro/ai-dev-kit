@@ -42,7 +42,7 @@ MLFLOW_REPO_RAW_URL="https://raw.githubusercontent.com/mlflow/skills"
 MLFLOW_REPO_REF="main"
 
 # Databricks skills (hosted in this repo)
-DATABRICKS_SKILLS="agent-bricks asset-bundles databricks-aibi-dashboards databricks-app-apx databricks-app-python databricks-config databricks-dbsql databricks-docs databricks-genie databricks-jobs databricks-python-sdk databricks-unity-catalog lakebase-autoscale lakebase-provisioned metric-views mlflow-evaluation model-serving spark-declarative-pipelines spark-structured-streaming synthetic-data-generation unstructured-pdf-generation vector-search"
+DATABRICKS_SKILLS="agent-bricks databricks-aibi-dashboards asset-bundles databricks-app-apx databricks-app-python databricks-config databricks-dbsql databricks-docs databricks-genie databricks-jobs databricks-python-sdk databricks-unity-catalog lakebase-autoscale lakebase-provisioned metric-views mlflow-evaluation model-serving spark-declarative-pipelines spark-structured-streaming synthetic-data-generation unstructured-pdf-generation vector-search zerobus-ingest"
 
 # MLflow skills (fetched from mlflow/skills repo)
 MLFLOW_SKILLS="agent-evaluation analyze-mlflow-chat-session analyze-mlflow-trace instrumenting-with-mlflow-tracing mlflow-onboarding querying-mlflow-metrics retrieving-mlflow-traces searching-mlflow-docs"
@@ -75,6 +75,7 @@ get_skill_description() {
         "synthetic-data-generation") echo "Synthetic test data generation" ;;
         "unstructured-pdf-generation") echo "Generate synthetic PDFs for RAG" ;;
         "vector-search") echo "Vector Search - endpoints, indexes, and queries for RAG" ;;
+        "zerobus-ingest") echo "Zerobus Ingest - gRPC data ingestion into Delta tables" ;;
         # MLflow skills (from mlflow/skills repo)
         "agent-evaluation") echo "End-to-end agent evaluation workflow" ;;
         "analyze-mlflow-chat-session") echo "Debug multi-turn conversations" ;;
@@ -108,6 +109,7 @@ get_skill_extra_files() {
         "spark-declarative-pipelines") echo "1-ingestion-patterns.md 2-streaming-patterns.md 3-scd-patterns.md 4-performance-tuning.md 5-python-api.md 6-dlt-migration.md 7-advanced-configuration.md 8-project-initialization.md" ;;
         "spark-structured-streaming") echo "checkpoint-best-practices.md kafka-streaming.md merge-operations.md multi-sink-writes.md stateful-operations.md stream-static-joins.md stream-stream-joins.md streaming-best-practices.md trigger-and-cost-optimization.md" ;;
         "vector-search") echo "index-types.md" ;;
+        "zerobus-ingest") echo "1-setup-and-authentication.md 2-python-client.md 3-multilanguage-clients.md 4-protobuf-schema.md 5-operations-and-limits.md" ;;
         *) echo "" ;;
     esac
 }
