@@ -51,7 +51,7 @@ databricks-python-sdk/
 ## Related Skills
 
 - [Databricks Config](../databricks-config/) -- profile and authentication setup
-- [Asset Bundles](../asset-bundles/) -- deploying resources via DABs
+- [Asset Bundles](../databricks-asset-bundles/) -- deploying resources via DABs
 - [Databricks Jobs](../databricks-jobs/) -- job orchestration patterns
 - [Unity Catalog](../databricks-unity-catalog/) -- catalog governance
 - [Model Serving](../model-serving/) -- serving endpoint management

@@ -46,7 +46,7 @@ lakebase-autoscale/
 - [Databricks Apps (APX)](../databricks-app-apx/) -- full-stack apps that can use Lakebase for persistence
 - [Databricks Apps (Python)](../databricks-app-python/) -- Python apps with Lakebase backend
 - [Databricks Python SDK](../databricks-python-sdk/) -- SDK used for project management and token generation
-- [Asset Bundles](../asset-bundles/) -- deploying apps with Lakebase resources
+- [Asset Bundles](../databricks-asset-bundles/) -- deploying apps with Lakebase resources
 - [Databricks Jobs](../databricks-jobs/) -- scheduling reverse ETL sync jobs
 
 ## Resources

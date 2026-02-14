@@ -34,16 +34,16 @@ class TestDetectSkillsFromPrompt:
         assert "databricks-python-sdk" in skills
 
     def test_detect_asset_bundles(self):
-        """Test detection of asset-bundles skill."""
+        """Test detection of databricks-asset-bundles skill."""
         prompt = "Create a databricks asset bundle for deployment"
         skills = detect_skills_from_prompt(prompt)
-        assert "asset-bundles" in skills
+        assert "databricks-asset-bundles" in skills
 
     def test_detect_dabs(self):
         """Test detection via DABs keyword."""
         prompt = "Set up DABs for my pipeline"
         skills = detect_skills_from_prompt(prompt)
-        assert "asset-bundles" in skills
+        assert "databricks-asset-bundles" in skills
 
     def test_detect_mlflow_evaluation(self):
         """Test detection of mlflow-evaluation skill."""
@@ -134,7 +134,7 @@ class TestDetectSkillsFromPrompt:
         prompt = "Create streaming tables and deploy with DABs"
         skills = detect_skills_from_prompt(prompt)
         assert "spark-declarative-pipelines" in skills
-        assert "asset-bundles" in skills
+        assert "databricks-asset-bundles" in skills
 
     def test_detect_multi_app_lakebase(self):
         """Test detection of app + lakebase."""
@@ -172,7 +172,7 @@ class TestSkillTriggers:
             "spark-declarative-pipelines",
             "databricks-app-apx",
             "databricks-app-python",
-            "asset-bundles",
+            "databricks-asset-bundles",
             "databricks-python-sdk",
             "databricks-jobs",
             "synthetic-data-generation",

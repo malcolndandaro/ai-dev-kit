@@ -61,7 +61,7 @@ You have access to Databricks MCP tools prefixed with `mcp__databricks__`. Use `
 ## Skills
 
 Load skills for detailed guidance:
-- `skill: "asset-bundles"` - Databricks Asset Bundles
+- `skill: "databricks-asset-bundles"` - Databricks Asset Bundles
 - `skill: "databricks-app-apx"` - Full-stack apps with APX framework
 - `skill: "databricks-app-python"` - Python apps with Dash, Streamlit, Flask
 - `skill: "databricks-python-sdk"` - Python SDK patterns

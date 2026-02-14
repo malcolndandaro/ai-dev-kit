@@ -10,11 +10,11 @@
 #   curl -sSL https://raw.githubusercontent.com/databricks-solutions/ai-dev-kit/main/databricks-skills/install_skills.sh | bash
 #
 #   # Install specific skills (can mix Databricks and MLflow skills)
-#   curl -sSL https://raw.githubusercontent.com/databricks-solutions/ai-dev-kit/main/databricks-skills/install_skills.sh | bash -s -- asset-bundles agent-evaluation
+#   curl -sSL https://raw.githubusercontent.com/databricks-solutions/ai-dev-kit/main/databricks-skills/install_skills.sh | bash -s -- databricks-asset-bundles agent-evaluation
 #
 #   # Or run locally
 #   ./install_skills.sh                              # Install all skills
-#   ./install_skills.sh asset-bundles agent-evaluation  # Install specific skills
+#   ./install_skills.sh databricks-asset-bundles agent-evaluation  # Install specific skills
 #   ./install_skills.sh --mlflow-version v1.0.0      # Pin MLflow skills version
 #   ./install_skills.sh --local                      # Install Databricks skills from local directory
 #   ./install_skills.sh --list                       # List available skills
@@ -42,7 +42,7 @@ MLFLOW_REPO_RAW_URL="https://raw.githubusercontent.com/mlflow/skills"
 MLFLOW_REPO_REF="main"
 
 # Databricks skills (hosted in this repo)
-DATABRICKS_SKILLS="agent-bricks databricks-aibi-dashboards asset-bundles databricks-app-apx databricks-app-python databricks-config databricks-dbsql databricks-docs databricks-genie databricks-jobs databricks-python-sdk databricks-unity-catalog lakebase-autoscale lakebase-provisioned metric-views mlflow-evaluation model-serving spark-declarative-pipelines spark-structured-streaming synthetic-data-generation unstructured-pdf-generation vector-search zerobus-ingest"
+DATABRICKS_SKILLS="agent-bricks databricks-aibi-dashboards databricks-asset-bundles databricks-app-apx databricks-app-python databricks-config databricks-dbsql databricks-docs databricks-genie databricks-jobs databricks-python-sdk databricks-unity-catalog lakebase-autoscale lakebase-provisioned metric-views mlflow-evaluation model-serving spark-declarative-pipelines spark-structured-streaming synthetic-data-generation unstructured-pdf-generation vector-search zerobus-ingest"
 
 # MLflow skills (fetched from mlflow/skills repo)
 MLFLOW_SKILLS="agent-evaluation analyze-mlflow-chat-session analyze-mlflow-trace instrumenting-with-mlflow-tracing mlflow-onboarding querying-mlflow-metrics retrieving-mlflow-traces searching-mlflow-docs"
@@ -56,7 +56,7 @@ get_skill_description() {
         # Databricks skills
         "agent-bricks") echo "Knowledge Assistants, Genie Spaces, Multi-Agent Supervisors" ;;
         "databricks-aibi-dashboards") echo "Databricks AI/BI Dashboards - create and manage dashboards" ;;
-        "asset-bundles") echo "Databricks Asset Bundles - deployment and configuration" ;;
+        "databricks-databricks-asset-bundles") echo "Databricks Asset Bundles - deployment and configuration" ;;
         "databricks-app-apx") echo "Databricks Apps with React/Next.js (APX framework)" ;;
         "databricks-app-python") echo "Databricks Apps with Python (Dash, Streamlit)" ;;
         "databricks-config") echo "Profile authentication setup for Databricks" ;;
@@ -95,7 +95,7 @@ get_skill_extra_files() {
         "agent-bricks") echo "1-knowledge-assistants.md 3-multi-agent-supervisors.md" ;;
         "databricks-aibi-dashboards") echo "widget-reference.md sql-patterns.md" ;;
         "databricks-genie") echo "spaces.md conversation.md" ;;
-        "asset-bundles") echo "alerts_guidance.md SDP_guidance.md" ;;
+        "databricks-databricks-asset-bundles") echo "alerts_guidance.md SDP_guidance.md" ;;
         "databricks-app-apx") echo "backend-patterns.md best-practices.md frontend-patterns.md" ;;
         "databricks-app-python") echo "dash.md streamlit.md README.md" ;;
         "databricks-jobs") echo "task-types.md triggers-schedules.md notifications-monitoring.md examples.md" ;;
@@ -158,7 +158,7 @@ show_help() {
     echo "  ./install_skills.sh                          # Install all skills"
     echo "  ./install_skills.sh spark-declarative-pipelines  # Install specific Databricks skill"
     echo "  ./install_skills.sh agent-evaluation         # Install specific MLflow skill"
-    echo "  ./install_skills.sh asset-bundles agent-evaluation  # Mix of both sources"
+    echo "  ./install_skills.sh databricks-asset-bundles agent-evaluation  # Mix of both sources"
     echo "  ./install_skills.sh --mlflow-version v1.0.0  # Pin MLflow skills version"
     echo "  ./install_skills.sh --local                  # Install all from local directory"
     echo "  ./install_skills.sh --list                   # List available skills"

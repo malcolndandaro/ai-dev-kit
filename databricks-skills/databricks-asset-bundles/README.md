@@ -9,7 +9,7 @@ This skill provides comprehensive guidance for creating, configuring, and deploy
 ## What's Included
 
 ```
-asset-bundles/
+databricks-asset-bundles/
 ├── SKILL.md              # Main skill: bundle structure, resource types, commands, and troubleshooting
 ├── SDP_guidance.md       # Spark Declarative Pipeline configuration patterns for DABs
 └── alerts_guidance.md    # SQL Alert v2 API schema and configuration (critical API differences)

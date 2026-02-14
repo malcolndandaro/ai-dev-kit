@@ -157,7 +157,7 @@ Manually verify in browser:
 
 ### Deploy to Databricks
 
-Use DABs to deploy your APX application to Databricks. See the `asset-bundles` skill for complete deployment guidance.
+Use DABs to deploy your APX application to Databricks. See the `databricks-asset-bundles` skill for complete deployment guidance.
 
 ### Monitor Application Logs
 

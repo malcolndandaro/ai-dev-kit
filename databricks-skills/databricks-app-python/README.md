@@ -45,7 +45,7 @@ databricks-app-python/
 ## Related Skills
 
 - [Databricks Apps (APX)](../databricks-app-apx/) — full-stack apps with FastAPI + React
-- [Asset Bundles](../asset-bundles/) — deploying apps via DABs
+- [Asset Bundles](../databricks-asset-bundles/) — deploying apps via DABs
 - [Databricks Python SDK](../databricks-python-sdk/) — backend SDK integration
 - [Lakebase Provisioned](../lakebase-provisioned/) — adding persistent PostgreSQL state
 - [Model Serving](../model-serving/) — serving ML models for app integration

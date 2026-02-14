@@ -33,7 +33,7 @@ databricks-config/
 ## Related Skills
 
 - [Databricks Python SDK](../databricks-python-sdk/) -- uses profiles configured by this skill
-- [Asset Bundles](../asset-bundles/) -- references workspace profiles for deployment targets
+- [Asset Bundles](../databricks-asset-bundles/) -- references workspace profiles for deployment targets
 - [Databricks Apps (APX)](../databricks-app-apx/) -- apps that connect via configured profiles
 - [Databricks Apps (Python)](../databricks-app-python/) -- Python apps using configured profiles
 

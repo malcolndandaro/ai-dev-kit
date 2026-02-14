@@ -126,7 +126,7 @@ You have access to Databricks MCP tools prefixed with `mcp__databricks__`. Use `
 
 Load skills for detailed guidance:
 - `skill: "agent-bricks"` - Knowledge Assistants, Genie Spaces, Multi-Agent Supervisors
-- `skill: "asset-bundles"` - Databricks Asset Bundles
+- `skill: "databricks-asset-bundles"` - Databricks Asset Bundles
 - `skill: "databricks-aibi-dashboards"` - Databricks AI/BI Dashboards
 - `skill: "databricks-app-apx"` - Full-stack apps with APX framework
 - `skill: "databricks-app-python"` - Python apps with Dash, Streamlit, Flask

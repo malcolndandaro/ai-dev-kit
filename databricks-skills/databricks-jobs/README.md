@@ -44,7 +44,7 @@ databricks-jobs/
 
 ## Related Skills
 
-- [Asset Bundles](../asset-bundles/) -- for deploying jobs via Databricks Asset Bundles
+- [Asset Bundles](../databricks-asset-bundles/) -- for deploying jobs via Databricks Asset Bundles
 - [Spark Declarative Pipelines](../spark-declarative-pipelines/) -- for configuring pipelines triggered by jobs
 - [Databricks Unity Catalog](../databricks-unity-catalog/) -- for system tables tracking job execution history
 

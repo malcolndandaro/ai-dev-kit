@@ -197,7 +197,7 @@ Once configured, your coding agent has access to these Databricks tools:
 
 The setup script installs these skills to `.claude/skills/`:
 
-- **asset-bundles** - Databricks Asset Bundles
+- **databricks-asset-bundles** - Databricks Asset Bundles
 - **databricks-app-apx** - Full-stack apps with APX framework (FastAPI + React)
 - **databricks-app-python** - Python apps with Dash, Streamlit, Flask
 - **databricks-python-sdk** - Python SDK patterns
@@ -265,7 +265,7 @@ If using `DATABRICKS_CONFIG_PROFILE`, add it to the `env` block in `.cursor/mcp.
 ai-dev-project/
 ├── .claude/
 │   └── skills/            # Installed Databricks skills
-│       ├── asset-bundles/
+│       ├── databricks-asset-bundles/
 │       ├── spark-declarative-pipelines/
 │       └── ...
 ├── .cursor/

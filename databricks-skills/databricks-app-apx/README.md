@@ -39,7 +39,7 @@ databricks-app-apx/
 ## Related Skills
 
 - [Databricks Apps (Python)](../databricks-app-python/) -- for Streamlit, Dash, Gradio, or Flask apps
-- [Asset Bundles](../asset-bundles/) -- deploying APX apps via DABs
+- [Asset Bundles](../databricks-asset-bundles/) -- deploying APX apps via DABs
 - [Databricks Python SDK](../databricks-python-sdk/) -- backend SDK integration
 - [Lakebase Provisioned](../lakebase-provisioned/) -- adding persistent PostgreSQL state to apps
 
