@@ -649,21 +649,26 @@ install_skills() {
     step "Installing skills"
 
     local base_dir=$1
-    local dirs=""
+    local dirs=()
 
-    # Determine target directories
+    # Determine target directories (array so paths with spaces work)
     for tool in $TOOLS; do
         case $tool in
-            claude) dirs="$base_dir/.claude/skills" ;;
-            cursor) echo "$TOOLS" | grep -q claude || dirs="$dirs $base_dir/.cursor/skills" ;;
-            copilot) dirs="$dirs $base_dir/.github/skills" ;;
-            codex) dirs="$dirs $base_dir/.agents/skills" ;;
+            claude) dirs=("$base_dir/.claude/skills") ;;
+            cursor) echo "$TOOLS" | grep -q claude || dirs+=("$base_dir/.cursor/skills") ;;
+            copilot) dirs+=("$base_dir/.github/skills") ;;
+            codex) dirs+=("$base_dir/.agents/skills") ;;
         esac
     done
 
-    dirs=$(echo "$dirs" | xargs -n1 | sort -u | xargs)
+    # Dedupe: one element per line, sort -u, read back into array
+    local unique=()
+    while IFS= read -r d; do
+        unique+=("$d")
+    done < <(printf '%s\n' "${dirs[@]}" | sort -u)
+    dirs=("${unique[@]}")
 
-    for dir in $dirs; do
+    for dir in "${dirs[@]}"; do
         mkdir -p "$dir"
         # Install Databricks skills from repo
         for skill in $SKILLS; do
