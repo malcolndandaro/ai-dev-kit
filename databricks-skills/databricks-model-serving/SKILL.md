@@ -135,9 +135,9 @@ Then deploy via UI or SDK. See [1-classical-ml.md](1-classical-ml.md).
 
 | Tool | Purpose |
 |------|---------|
-| `create_job` | Create deployment job (one-time) |
-| `run_job_now` | Kick off deployment (async) |
-| `get_run` | Check deployment job status |
+| `manage_jobs` (action="create") | Create deployment job (one-time) |
+| `manage_job_runs` (action="run_now") | Kick off deployment (async) |
+| `manage_job_runs` (action="get") | Check deployment job status |
 
 ### Querying
 

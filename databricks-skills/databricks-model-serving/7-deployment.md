@@ -41,10 +41,11 @@ print(f"Endpoint: {deployment.endpoint_name}")
 
 ### Step 2: Create Deployment Job (One-Time)
 
-Use the `create_job` MCP tool:
+Use the `manage_jobs` MCP tool with action="create":
 
 ```
-create_job(
+manage_jobs(
+    action="create",
     name="deploy-agent-job",
     tasks=[
         {
@@ -66,10 +67,11 @@ Save the returned `job_id`.
 
 ### Step 3: Run Deployment (Async)
 
-Use `run_job_now` - returns immediately:
+Use `manage_job_runs` with action="run_now" - returns immediately:
 
 ```
-run_job_now(
+manage_job_runs(
+    action="run_now",
     job_id="<job_id>",
     job_parameters={"model_name": "main.agents.my_agent", "version": "1"}
 )
@@ -82,7 +84,7 @@ Save the returned `run_id`.
 Check job run status:
 
 ```
-get_run(run_id="<run_id>")
+manage_job_runs(action="get", run_id="<run_id>")
 ```
 
 Or check endpoint directly:
@@ -214,9 +216,9 @@ client.update_endpoint(
 | Step | MCP Tool | Waits? |
 |------|----------|--------|
 | Upload deploy script | `upload_folder` | Yes |
-| Create job (one-time) | `create_job` | Yes |
-| Run deployment | `run_job_now` | **No** - returns immediately |
-| Check job status | `get_run` | Yes |
+| Create job (one-time) | `manage_jobs` (action="create") | Yes |
+| Run deployment | `manage_job_runs` (action="run_now") | **No** - returns immediately |
+| Check job status | `manage_job_runs` (action="get") | Yes |
 | Check endpoint status | `get_serving_endpoint_status` | Yes |
 
 ## After Deployment
