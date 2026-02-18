@@ -56,6 +56,7 @@ def _git_toplevel() -> Optional[str]:
     try:
         result = subprocess.run(
             ["git", "rev-parse", "--show-toplevel"],
+            stdin=subprocess.DEVNULL,
             capture_output=True,
             text=True,
             timeout=5,
@@ -125,6 +126,7 @@ def detect_project_name() -> str:
         try:
             result = subprocess.run(
                 ["git", "remote", "get-url", "origin"],
+                stdin=subprocess.DEVNULL,
                 capture_output=True,
                 text=True,
                 timeout=5,
