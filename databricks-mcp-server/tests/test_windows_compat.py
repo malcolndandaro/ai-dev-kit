@@ -102,7 +102,7 @@ class TestWrapSyncInThread:
         with the original signature.
         """
         wrapped = _wrap_sync_in_thread(sample_tool)
-        ta = pydantic.TypeAdapter(wrapped.__annotations__.get("return", str))
+        pydantic.TypeAdapter(wrapped.__annotations__.get("return", str))
         # TypeAdapter should be able to read the function's annotations
         sig = inspect.signature(wrapped)
         assert "query" in sig.parameters
