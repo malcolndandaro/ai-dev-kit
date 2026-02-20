@@ -636,9 +636,8 @@ setup_mcp() {
     
     # Clone or update repo
     if [ -d "$REPO_DIR/.git" ]; then
-        git -C "$REPO_DIR" fetch -q origin "$BRANCH" 2>/dev/null || true
-        git -c advice.detachedHead=false -C "$REPO_DIR" checkout -q "$BRANCH" 2>/dev/null || true
-        git -C "$REPO_DIR" pull -q 2>/dev/null || {
+        git -C "$REPO_DIR" fetch -q --depth 1 origin "$BRANCH" 2>/dev/null || true
+        git -C "$REPO_DIR" reset --hard FETCH_HEAD 2>/dev/null || {
             rm -rf "$REPO_DIR"
             git -c advice.detachedHead=false clone -q --depth 1 --branch "$BRANCH" "$REPO_URL" "$REPO_DIR"
         }
