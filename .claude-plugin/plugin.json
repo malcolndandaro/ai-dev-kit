@@ -1,13 +1,15 @@
 {
   "name": "databricks-ai-dev-kit",
-  "version": "1.0.0",
-  "description": "Databricks development toolkit with skills for data engineering, ML, and AI agents plus MCP tools for direct Databricks operations",
+  "version": "1.1.0",
+  "description": "Databricks development toolkit with skills, flows, and MCP tools for data engineering, ML, and AI agents",
   "author": {
     "name": "Databricks Solutions"
   },
   "repository": "https://github.com/databricks-solutions/ai-dev-kit",
   "homepage": "https://github.com/databricks-solutions/ai-dev-kit",
   "license": "DB License (see repo)",
-  "keywords": ["databricks", "spark", "mlflow", "data-engineering", "ai-agents", "mcp"],
-  "skills": "./databricks-skills/"
+  "keywords": ["databricks", "spark", "mlflow", "data-engineering", "ai-agents", "mcp", "flows"],
+  "skills": ["./databricks-skills/", "./databricks-flows/skills/"],
+  "commands": "./databricks-flows/commands/",
+  "agents": "./databricks-flows/agents/"
 }

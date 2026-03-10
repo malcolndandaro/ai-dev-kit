@@ -1196,6 +1196,76 @@ install_skills() {
     else
         echo "${SKILLS_PROFILE:-all}" > "$STATE_DIR/.skills-profile"
     fi
+
+    # Install flows (commands, agents, flow-specific skills)
+    install_flows "$base_dir"
+}
+
+# Install Databricks Flows (commands + agents + flow skills)
+install_flows() {
+    local base_dir=$1
+    local flows_src="$REPO_DIR/databricks-flows"
+
+    # Skip if flows directory doesn't exist in repo
+    if [ ! -d "$flows_src" ]; then
+        return 0
+    fi
+
+    msg "Installing Databricks Flows..."
+
+    local flow_count=0
+
+    for tool in $TOOLS; do
+        local commands_dir agents_dir skills_dir
+        case $tool in
+            claude)
+                commands_dir="$base_dir/.claude/commands"
+                agents_dir="$base_dir/.claude/agents"
+                skills_dir="$base_dir/.claude/skills"
+                ;;
+            cursor)
+                echo "$TOOLS" | grep -q claude && continue
+                commands_dir="$base_dir/.cursor/commands"
+                agents_dir="$base_dir/.cursor/agents"
+                skills_dir="$base_dir/.cursor/skills"
+                ;;
+            *) continue ;;
+        esac
+
+        # Install flow commands
+        if [ -d "$flows_src/commands" ]; then
+            mkdir -p "$commands_dir"
+            for cmd_file in "$flows_src/commands"/*.md; do
+                [ -f "$cmd_file" ] || continue
+                cp "$cmd_file" "$commands_dir/"
+                flow_count=$((flow_count + 1))
+            done
+        fi
+
+        # Install flow agents
+        if [ -d "$flows_src/agents" ]; then
+            mkdir -p "$agents_dir"
+            for agent_file in "$flows_src/agents"/*.md; do
+                [ -f "$agent_file" ] || continue
+                cp "$agent_file" "$agents_dir/"
+            done
+        fi
+
+        # Install flow-specific skills
+        if [ -d "$flows_src/skills" ]; then
+            for skill_dir in "$flows_src/skills"/*/; do
+                [ -d "$skill_dir" ] || continue
+                local skill_name
+                skill_name=$(basename "$skill_dir")
+                rm -rf "$skills_dir/$skill_name"
+                cp -r "$skill_dir" "$skills_dir/$skill_name"
+            done
+        fi
+    done
+
+    if [ $flow_count -gt 0 ]; then
+        ok "Flows ($flow_count commands) → .claude/commands/"
+    fi
 }
 
 # Write MCP configs
