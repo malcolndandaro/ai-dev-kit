@@ -741,8 +741,9 @@ prompt_skills_profile() {
         return
     fi
 
-    # Check for previous selection
-    local profile_file="$INSTALL_DIR/.skills-profile"
+    # Check for previous selection (scope-local first, then global fallback for upgrades)
+    local profile_file="$STATE_DIR/.skills-profile"
+    [ ! -f "$profile_file" ] && [ "$SCOPE" = "project" ] && profile_file="$INSTALL_DIR/.skills-profile"
     if [ -f "$profile_file" ]; then
         local prev_profile
         prev_profile=$(cat "$profile_file")
@@ -1099,7 +1100,9 @@ install_skills() {
     local all_new_skills="$SELECTED_SKILLS $SELECTED_MLFLOW_SKILLS $SELECTED_APX_SKILLS"
 
     # Clean up previously installed skills that are no longer selected
-    local manifest="$INSTALL_DIR/.installed-skills"
+    # Check scope-local manifest first, fall back to global for upgrades from older versions
+    local manifest="$STATE_DIR/.installed-skills"
+    [ ! -f "$manifest" ] && [ "$SCOPE" = "project" ] && [ -f "$INSTALL_DIR/.installed-skills" ] && manifest="$INSTALL_DIR/.installed-skills"
     if [ -f "$manifest" ]; then
         while IFS='|' read -r prev_dir prev_skill; do
             [ -z "$prev_skill" ] && continue
@@ -1115,7 +1118,9 @@ install_skills() {
         done < "$manifest"
     fi
 
-    # Start fresh manifest
+    # Start fresh manifest (always write to scope-local state dir)
+    manifest="$STATE_DIR/.installed-skills"
+    mkdir -p "$STATE_DIR"
     : > "$manifest.tmp"
 
     for dir in "${dirs[@]}"; do
@@ -1170,14 +1175,13 @@ install_skills() {
     done
 
     # Save manifest of installed skills (for cleanup on profile change)
-    mkdir -p "$INSTALL_DIR"
     mv "$manifest.tmp" "$manifest"
 
-    # Save selected profile for future reinstalls
+    # Save selected profile for future reinstalls (scope-local)
     if [ -n "$USER_SKILLS" ]; then
-        echo "custom:$USER_SKILLS" > "$INSTALL_DIR/.skills-profile"
+        echo "custom:$USER_SKILLS" > "$STATE_DIR/.skills-profile"
     else
-        echo "${SKILLS_PROFILE:-all}" > "$INSTALL_DIR/.skills-profile"
+        echo "${SKILLS_PROFILE:-all}" > "$STATE_DIR/.skills-profile"
     fi
 }
 
@@ -1630,6 +1634,13 @@ main() {
     if [ "$SCOPE_EXPLICIT" = false ]; then
         prompt_scope
         ok "Scope: $SCOPE"
+    fi
+
+    # Set state directory based on scope (for profile/manifest storage)
+    if [ "$SCOPE" = "global" ]; then
+        STATE_DIR="$INSTALL_DIR"
+    else
+        STATE_DIR="$(pwd)/.ai-dev-kit"
     fi
 
     # ── Step 4: Skill profile selection ──

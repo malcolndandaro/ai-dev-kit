@@ -901,8 +901,11 @@ function Invoke-PromptSkillsProfile {
         return
     }
 
-    # Check for previous selection
-    $profileFile = Join-Path $script:InstallDir ".skills-profile"
+    # Check for previous selection (scope-local first, then global fallback for upgrades)
+    $profileFile = Join-Path $script:StateDir ".skills-profile"
+    if (-not (Test-Path $profileFile) -and $script:Scope -eq "project") {
+        $profileFile = Join-Path $script:InstallDir ".skills-profile"
+    }
     if (Test-Path $profileFile) {
         $prevProfile = (Get-Content $profileFile -Raw).Trim()
         if (-not $script:Force) {
@@ -1155,7 +1158,11 @@ function Install-Skills {
     $allNewSkills += $script:SelectedApxSkills
 
     # Clean up previously installed skills that are no longer selected
-    $manifest = Join-Path $script:InstallDir ".installed-skills"
+    # Check scope-local manifest first, fall back to global for upgrades from older versions
+    $manifest = Join-Path $script:StateDir ".installed-skills"
+    if (-not (Test-Path $manifest) -and $script:Scope -eq "project" -and (Test-Path (Join-Path $script:InstallDir ".installed-skills"))) {
+        $manifest = Join-Path $script:InstallDir ".installed-skills"
+    }
     if (Test-Path $manifest) {
         foreach ($line in (Get-Content $manifest)) {
             if ([string]::IsNullOrWhiteSpace($line)) { continue }
@@ -1245,18 +1252,19 @@ function Install-Skills {
         }
     }
 
-    # Save manifest of installed skills (for cleanup on profile change)
-    if (-not (Test-Path $script:InstallDir)) {
-        New-Item -ItemType Directory -Path $script:InstallDir -Force | Out-Null
+    # Save manifest and profile to scope-local state directory
+    if (-not (Test-Path $script:StateDir)) {
+        New-Item -ItemType Directory -Path $script:StateDir -Force | Out-Null
     }
+    $manifest = Join-Path $script:StateDir ".installed-skills"
     Set-Content -Path $manifest -Value ($manifestEntries -join "`n") -Encoding UTF8
 
     # Save selected profile for future reinstalls
     if (-not [string]::IsNullOrWhiteSpace($script:UserSkills)) {
-        Set-Content -Path (Join-Path $script:InstallDir ".skills-profile") -Value "custom:$($script:UserSkills)" -Encoding UTF8
+        Set-Content -Path (Join-Path $script:StateDir ".skills-profile") -Value "custom:$($script:UserSkills)" -Encoding UTF8
     } else {
         $profileValue = if ([string]::IsNullOrWhiteSpace($script:SkillsProfile)) { "all" } else { $script:SkillsProfile }
-        Set-Content -Path (Join-Path $script:InstallDir ".skills-profile") -Value $profileValue -Encoding UTF8
+        Set-Content -Path (Join-Path $script:StateDir ".skills-profile") -Value $profileValue -Encoding UTF8
     }
 }
 
@@ -1760,6 +1768,13 @@ function Invoke-Main {
     if (-not $script:ScopeExplicit) {
         Invoke-PromptScope
         Write-Ok "Scope: $($script:Scope)"
+    }
+
+    # Set state directory based on scope (for profile/manifest storage)
+    if ($script:Scope -eq "global") {
+        $script:StateDir = $script:InstallDir
+    } else {
+        $script:StateDir = Join-Path (Get-Location) ".ai-dev-kit"
     }
 
     # Skill profile selection
