@@ -1148,6 +1148,35 @@ function Install-Skills {
     $totalCount = $dbCount + $mlflowCount + $apxCount
     Write-Msg "Installing $totalCount skills"
 
+    # Build set of all skills being installed now
+    $allNewSkills = @()
+    $allNewSkills += $script:SelectedSkills
+    $allNewSkills += $script:SelectedMlflowSkills
+    $allNewSkills += $script:SelectedApxSkills
+
+    # Clean up previously installed skills that are no longer selected
+    $manifest = Join-Path $script:InstallDir ".installed-skills"
+    if (Test-Path $manifest) {
+        foreach ($line in (Get-Content $manifest)) {
+            if ([string]::IsNullOrWhiteSpace($line)) { continue }
+            $parts = $line -split '\|', 2
+            if ($parts.Count -ne 2) { continue }
+            $prevDir = $parts[0]
+            $prevSkill = $parts[1]
+            # Skip if this skill is still selected
+            if ($allNewSkills -contains $prevSkill) { continue }
+            # Only remove if the directory exists
+            $prevPath = Join-Path $prevDir $prevSkill
+            if (Test-Path $prevPath) {
+                Remove-Item -Recurse -Force $prevPath
+                Write-Msg "Removed deselected skill: $prevSkill"
+            }
+        }
+    }
+
+    # Start fresh manifest
+    $manifestEntries = @()
+
     foreach ($dir in $dirs) {
         if (-not (Test-Path $dir)) {
             New-Item -ItemType Directory -Path $dir -Force | Out-Null
@@ -1159,6 +1188,7 @@ function Install-Skills {
             $dest = Join-Path $dir $skill
             if (Test-Path $dest) { Remove-Item -Recurse -Force $dest }
             Copy-Item -Recurse $src $dest
+            $manifestEntries += "$dir|$skill"
         }
         $shortDir = $dir -replace [regex]::Escape($env:USERPROFILE), '~'
         Write-Ok "Databricks skills ($dbCount) -> $shortDir"
@@ -1179,6 +1209,7 @@ function Install-Skills {
                             Invoke-WebRequest -Uri "$MlflowRawUrl/$skill/$ref" -OutFile (Join-Path $destDir $ref) -UseBasicParsing -ErrorAction Stop
                         } catch {}
                     }
+                    $manifestEntries += "$dir|$skill"
                 } catch {
                     Remove-Item -Recurse -Force $destDir -ErrorAction SilentlyContinue
                 }
@@ -1203,6 +1234,7 @@ function Install-Skills {
                             Invoke-WebRequest -Uri "$ApxRawUrl/$ref" -OutFile (Join-Path $destDir $ref) -UseBasicParsing -ErrorAction Stop
                         } catch {}
                     }
+                    $manifestEntries += "$dir|$skill"
                 } catch {
                     Remove-Item $destDir -ErrorAction SilentlyContinue
                     Write-Warning "Could not install APX skill '$skill' - consider removing $destDir if it is no longer needed"
@@ -1213,10 +1245,13 @@ function Install-Skills {
         }
     }
 
-    # Save selected profile for future reinstalls
+    # Save manifest of installed skills (for cleanup on profile change)
     if (-not (Test-Path $script:InstallDir)) {
         New-Item -ItemType Directory -Path $script:InstallDir -Force | Out-Null
     }
+    Set-Content -Path $manifest -Value ($manifestEntries -join "`n") -Encoding UTF8
+
+    # Save selected profile for future reinstalls
     if (-not [string]::IsNullOrWhiteSpace($script:UserSkills)) {
         Set-Content -Path (Join-Path $script:InstallDir ".skills-profile") -Value "custom:$($script:UserSkills)" -Encoding UTF8
     } else {

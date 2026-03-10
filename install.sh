@@ -1095,6 +1095,29 @@ install_skills() {
     local total_count=$((db_count + mlflow_count + apx_count))
     msg "Installing ${B}${total_count}${N} skills"
 
+    # Build set of all skills being installed now
+    local all_new_skills="$SELECTED_SKILLS $SELECTED_MLFLOW_SKILLS $SELECTED_APX_SKILLS"
+
+    # Clean up previously installed skills that are no longer selected
+    local manifest="$INSTALL_DIR/.installed-skills"
+    if [ -f "$manifest" ]; then
+        while IFS='|' read -r prev_dir prev_skill; do
+            [ -z "$prev_skill" ] && continue
+            # Skip if this skill is still selected
+            if echo " $all_new_skills " | grep -qw "$prev_skill"; then
+                continue
+            fi
+            # Only remove if the directory exists
+            if [ -d "$prev_dir/$prev_skill" ]; then
+                rm -rf "$prev_dir/$prev_skill"
+                msg "${D}Removed deselected skill: $prev_skill${N}"
+            fi
+        done < "$manifest"
+    fi
+
+    # Start fresh manifest
+    : > "$manifest.tmp"
+
     for dir in "${dirs[@]}"; do
         mkdir -p "$dir"
         # Install Databricks skills from repo
@@ -1103,6 +1126,7 @@ install_skills() {
             [ ! -d "$src" ] && continue
             rm -rf "$dir/$skill"
             cp -r "$src" "$dir/$skill"
+            echo "$dir|$skill" >> "$manifest.tmp"
         done
         ok "Databricks skills ($db_count) → ${dir#$HOME/}"
 
@@ -1117,6 +1141,7 @@ install_skills() {
                     for ref in reference.md examples.md api.md; do
                         curl -fsSL "$MLFLOW_RAW_URL/$skill/$ref" -o "$dest_dir/$ref" 2>/dev/null || true
                     done
+                    echo "$dir|$skill" >> "$manifest.tmp"
                 else
                     rm -rf "$dest_dir"
                 fi
@@ -1135,6 +1160,7 @@ install_skills() {
                     for ref in backend-patterns.md frontend-patterns.md; do
                         curl -fsSL "$APX_RAW_URL/$ref" -o "$dest_dir/$ref" 2>/dev/null || true
                     done
+                    echo "$dir|$skill" >> "$manifest.tmp"
                 else
                     rmdir "$dest_dir" 2>/dev/null || warn "Could not install APX skill '$skill' — consider removing $dest_dir if it is no longer needed"
                 fi
@@ -1143,8 +1169,11 @@ install_skills() {
         fi
     done
 
-    # Save selected profile for future reinstalls
+    # Save manifest of installed skills (for cleanup on profile change)
     mkdir -p "$INSTALL_DIR"
+    mv "$manifest.tmp" "$manifest"
+
+    # Save selected profile for future reinstalls
     if [ -n "$USER_SKILLS" ]; then
         echo "custom:$USER_SKILLS" > "$INSTALL_DIR/.skills-profile"
     else
