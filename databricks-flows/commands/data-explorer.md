@@ -3,6 +3,8 @@ name: data-explorer
 description: "Explore Databricks data interactively. Discover catalogs, schemas, tables, profile data quality, find relationships, and generate exploration reports. Use when you need to understand data, discover tables, profile columns, or find join candidates."
 disable-model-invocation: true
 argument-hint: "[catalog] [schema] [table]"
+context: fork
+agent: data-explorer-agent
 ---
 
 # Data Explorer Flow

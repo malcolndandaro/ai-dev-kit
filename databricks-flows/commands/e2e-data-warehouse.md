@@ -3,6 +3,8 @@ name: e2e-data-warehouse
 description: "Build a complete end-to-end data warehouse demo on Databricks: synthetic data generation, bronze/silver/gold medallion layers, SDP pipelines, and AI/BI dashboard. Use when user mentions 'data warehouse demo', 'end-to-end warehouse', 'medallion demo', 'e2e data warehouse', or 'full lakehouse demo'."
 disable-model-invocation: true
 argument-hint: "[industry: retail|healthcare|financial|iot] [catalog.schema]"
+context: fork
+agent: warehouse-builder-agent
 ---
 
 # End-to-End Data Warehouse Flow
