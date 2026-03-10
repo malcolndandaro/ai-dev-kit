@@ -12,11 +12,11 @@ SCHEMA = "<user-provided-schema>"
 VOLUME_PATH = f"/Volumes/{CATALOG}/{SCHEMA}/raw_data"
 
 # Note: Assume catalog exists - do NOT create it
-spark.sql(f"CREATE SCHEMA IF NOT EXISTS {CATALOG}.{SCHEMA}")
+spark.sql(f"CREATE SCHEMA IF NOT EXISTS {CATALOG}.{SCHEMA} COMMENT 'Synthetic data for demo scenario'")
 spark.sql(f"CREATE VOLUME IF NOT EXISTS {CATALOG}.{SCHEMA}.raw_data")
 ```
 
-**Important:** Do NOT create catalogs - assume they already exist. Only create schema and volume.
+**Important:** Do NOT create catalogs - assume they already exist. Only create schema and volume. Always add a `COMMENT` to schemas describing the dataset purpose.
 
 ---
 
@@ -125,6 +125,44 @@ customers_df.write \
 - User wants data ready to query immediately
 - Skip the SDP bronze/silver/gold pipeline
 - Direct SQL analytics
+
+### Adding Table and Column Comments
+
+Always add comments to Delta tables for discoverability in Unity Catalog. Prefer DDL-first approach — define the table with comments, then insert data.
+
+**DDL-first (preferred):**
+```python
+# Create table with inline column comments and table comment
+spark.sql(f"""
+    CREATE TABLE IF NOT EXISTS {CATALOG}.{SCHEMA}.customers (
+        customer_id STRING COMMENT 'Unique customer identifier (CUST-XXXXX)',
+        name STRING COMMENT 'Full customer name',
+        email STRING COMMENT 'Customer email address',
+        tier STRING COMMENT 'Customer tier: Free, Pro, Enterprise',
+        region STRING COMMENT 'Geographic region',
+        arr DOUBLE COMMENT 'Annual recurring revenue in USD'
+    )
+    COMMENT 'Synthetic customer data for e-commerce demo'
+""")
+
+# Then write data into the pre-defined table
+customers_df.write.mode("overwrite").saveAsTable(f"{CATALOG}.{SCHEMA}.customers")
+```
+
+**Post-write (alternative):**
+```python
+# Write first, then add comments
+customers_df.write.mode("overwrite").saveAsTable(f"{CATALOG}.{SCHEMA}.customers")
+
+# Add table comment
+spark.sql(f"COMMENT ON TABLE {CATALOG}.{SCHEMA}.customers IS 'Synthetic customer data for e-commerce demo'")
+
+# Add column comments
+spark.sql(f"ALTER TABLE {CATALOG}.{SCHEMA}.customers ALTER COLUMN customer_id COMMENT 'Unique customer identifier (CUST-XXXXX)'")
+spark.sql(f"ALTER TABLE {CATALOG}.{SCHEMA}.customers ALTER COLUMN tier COMMENT 'Customer tier: Free, Pro, Enterprise'")
+```
+
+**Note:** Column/table comments only apply to Delta tables in Unity Catalog. Parquet/JSON/CSV files written to volumes do not support metadata comments.
 
 ---
 
