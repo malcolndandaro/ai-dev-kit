@@ -1007,16 +1007,29 @@ check_version() {
     
     [ ! -f "$ver_file" ] && return
     [ "$FORCE" = true ] && return
-    
+
+    # Skip version gate if user explicitly wants a different skill profile
+    if [ -n "$SKILLS_PROFILE" ] || [ -n "$USER_SKILLS" ]; then
+        local saved_profile_file="$STATE_DIR/.skills-profile"
+        [ ! -f "$saved_profile_file" ] && [ "$SCOPE" = "project" ] && saved_profile_file="$INSTALL_DIR/.skills-profile"
+        if [ -f "$saved_profile_file" ]; then
+            local saved_profile
+            saved_profile=$(cat "$saved_profile_file")
+            local requested="${USER_SKILLS:+custom:$USER_SKILLS}"
+            [ -z "$requested" ] && requested="$SKILLS_PROFILE"
+            [ "$saved_profile" != "$requested" ] && return
+        fi
+    fi
+
     local local_ver=$(cat "$ver_file")
     # Use -f to fail on HTTP errors (like 404)
     local remote_ver=$(curl -fsSL "$RAW_URL/VERSION" 2>/dev/null || echo "")
-    
+
     # Validate remote version format (should not contain "404" or other error text)
     if [ -n "$remote_ver" ] && [[ ! "$remote_ver" =~ (404|Not Found|error) ]]; then
         if [ "$local_ver" = "$remote_ver" ]; then
             ok "Already up to date (v${local_ver})"
-            msg "${D}Use --force to reinstall${N}"
+            msg "${D}Use --force to reinstall or --skills-profile to change profiles${N}"
             exit 0
         fi
     fi

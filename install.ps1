@@ -734,6 +734,19 @@ function Test-Version {
     if (-not (Test-Path $verFile)) { return }
     if ($script:Force) { return }
 
+    # Skip version gate if user explicitly wants a different skill profile
+    if (-not [string]::IsNullOrWhiteSpace($script:SkillsProfile) -or -not [string]::IsNullOrWhiteSpace($script:UserSkills)) {
+        $savedProfileFile = Join-Path $script:StateDir ".skills-profile"
+        if (-not (Test-Path $savedProfileFile) -and $script:Scope -eq "project") {
+            $savedProfileFile = Join-Path $script:InstallDir ".skills-profile"
+        }
+        if (Test-Path $savedProfileFile) {
+            $savedProfile = (Get-Content $savedProfileFile -Raw).Trim()
+            $requested = if (-not [string]::IsNullOrWhiteSpace($script:UserSkills)) { "custom:$($script:UserSkills)" } else { $script:SkillsProfile }
+            if ($savedProfile -ne $requested) { return }
+        }
+    }
+
     $localVer = (Get-Content $verFile -Raw).Trim()
 
     try {
@@ -745,7 +758,7 @@ function Test-Version {
     if ($remoteVer -and $remoteVer -notmatch '(404|Not Found|error)') {
         if ($localVer -eq $remoteVer) {
             Write-Ok "Already up to date (v$localVer)"
-            Write-Msg "Use --force to reinstall"
+            Write-Msg "Use --force to reinstall or --skills-profile to change profiles"
             exit 0
         }
     }
