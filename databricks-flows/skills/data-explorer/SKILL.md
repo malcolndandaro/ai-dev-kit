@@ -1,140 +1,117 @@
 ---
 name: data-explorer
-description: "Profile and explore Databricks tables. Generates a structured data profiling report with row counts, null rates, distributions, relationships, and data quality flags."
-disable-model-invocation: true
-argument-hint: "<catalog.schema> [table1,table2,...]"
+description: "Profile Databricks tables and generate a data exploration report with row counts, null rates, distributions, and relationships."
 context: fork
-agent: data-explorer-agent
+agent: general-purpose
+allowed-tools:
+  - Bash
+  - Read
+  - Grep
+  - Glob
+  - mcp__databricks__execute_sql
+  - mcp__databricks__get_table_details
+  - mcp__databricks__get_best_warehouse
+disable-model-invocation: true
 ---
 
-# Data Explorer Flow
+# Data Explorer — Profile tables in: $ARGUMENTS
 
-Profile tables in a Databricks schema and produce a structured exploration report.
+You are an autonomous data profiling agent. Profile the Databricks schema specified below and produce a structured report. Run ALL steps without asking the user any questions.
 
-> **Arguments are required.** The user MUST provide `catalog.schema`. If not provided, stop and ask for it — do not guess or default.
+## Your Target
 
-## Inputs
+Parse `$ARGUMENTS` as `<catalog.schema> [table1,table2,...]`:
+- First token = `catalog.schema` (split on `.` to get catalog and schema)
+- Remaining tokens (optional) = comma-separated table names to profile
+- If no tables specified, profile ALL tables in the schema (max 20)
 
-| Argument | Required | Example |
-|----------|----------|---------|
-| `catalog.schema` | **Yes** | `my_catalog.sales_data` |
-| `table1,table2,...` | No — profiles ALL tables in schema if omitted | `orders,customers,products` |
+**If $ARGUMENTS is empty or missing catalog.schema, respond with:** "Usage: /data-explorer <catalog.schema> [table1,table2,...]" and stop.
 
-## Execution
-
-Run these steps exactly. Do NOT ask the user for input between steps — execute the full profiling pipeline autonomously and present the final report.
-
-### Step 1: Get Warehouse
+## Step 1: Get Warehouse
 
 ```
 get_best_warehouse
 ```
 
-If no warehouse available, stop and tell the user.
+If no warehouse available, stop and report the error.
 
-### Step 2: Validate Schema Exists
+## Step 2: List Tables
 
 ```sql
--- Run via execute_sql
 SHOW TABLES IN {catalog}.{schema}
 ```
 
-If schema doesn't exist or is empty, stop and report the error.
+Use `execute_sql` to run this. If the schema doesn't exist or is empty, stop and report.
 
-### Step 3: Get Table Metadata
-
+Then get metadata:
 ```
 get_table_details(catalog="{catalog}", schema="{schema}")
 ```
 
-If user specified tables, filter to only those. Otherwise, profile ALL tables in the schema (up to 20 tables max — if more than 20, profile the first 20 and note the rest were skipped).
+## Step 3: Profile Each Table
 
-### Step 4: Profile Each Table
+For EACH table, run these via `execute_sql`. Always use fully-qualified names `{catalog}.{schema}.{table}`.
 
-For EACH table, run these queries via `execute_sql`. Combine into as few queries as possible.
-
-**4a. Row count + column nulls + distinct counts** (one query per table):
-
+**3a. Row count + null/distinct stats:**
 ```sql
-SELECT
-  COUNT(*) AS total_rows,
-  {for each column:}
+SELECT COUNT(*) AS total_rows,
   COUNT({col}) AS {col}_non_null,
-  COUNT(DISTINCT {col}) AS {col}_distinct,
-  {end for}
+  COUNT(DISTINCT {col}) AS {col}_distinct
 FROM {catalog}.{schema}.{table}
 ```
 
-**4b. Numeric stats** (one query per table, only for INT/BIGINT/DECIMAL/DOUBLE/FLOAT columns):
-
+**3b. Numeric stats** (INT/BIGINT/DECIMAL/DOUBLE columns only):
 ```sql
-SELECT
-  {for each numeric column:}
-  MIN({col}) AS {col}_min,
-  MAX({col}) AS {col}_max,
-  ROUND(AVG({col}), 2) AS {col}_avg,
-  {end for}
+SELECT MIN({col}) AS {col}_min, MAX({col}) AS {col}_max, ROUND(AVG({col}), 2) AS {col}_avg
 FROM {catalog}.{schema}.{table}
 ```
 
-**4c. Date range** (one query per table, only for DATE/TIMESTAMP columns):
-
+**3c. Date range** (DATE/TIMESTAMP columns only):
 ```sql
-SELECT
-  {for each date column:}
-  MIN({col}) AS {col}_earliest,
-  MAX({col}) AS {col}_latest,
-  DATEDIFF(DAY, MIN({col}), MAX({col})) AS {col}_span_days,
-  {end for}
+SELECT MIN({col}) AS {col}_earliest, MAX({col}) AS {col}_latest
 FROM {catalog}.{schema}.{table}
 ```
 
-**4d. Top values for categorical columns** (only for STRING columns with <50 distinct values):
-
+**3d. Top values** (STRING columns with <50 distinct values):
 ```sql
-SELECT {col}, COUNT(*) AS cnt
-FROM {catalog}.{schema}.{table}
-GROUP BY {col}
-ORDER BY cnt DESC
-LIMIT 5
+SELECT {col}, COUNT(*) AS cnt FROM {catalog}.{schema}.{table}
+GROUP BY {col} ORDER BY cnt DESC LIMIT 5
 ```
 
-**4e. Sample rows** (5 rows per table for quick inspection):
-
+**3e. Sample rows:**
 ```sql
 SELECT * FROM {catalog}.{schema}.{table} LIMIT 5
 ```
 
-### Step 5: Detect Relationships
+For tables with >1M rows, add `TABLESAMPLE (1 PERCENT)` to 3d queries.
 
-Analyze column metadata across all profiled tables:
+## Step 4: Detect Relationships
 
-1. **FK pattern**: Column named `{other_table}_id` or `{other_table}_key` → maps to `{other_table}.id` or `{other_table}.{other_table}_id`
-2. **Shared columns**: Same column name in 2+ tables (e.g., `customer_id` in `orders` and `returns`)
-3. **PK candidates**: Columns with 0 nulls AND distinct count = row count
+Analyze column metadata across all tables:
+- Columns named `{other_table}_id` or `{other_table}_key` → FK candidate
+- Same column name in 2+ tables → join candidate
+- Columns with 0 nulls AND distinct = row count → PK candidate
 
-For each detected relationship, validate with a count query:
+For each detected relationship, validate:
 ```sql
-SELECT COUNT(*) AS match_count
-FROM {catalog}.{schema}.{table_a} a
+SELECT COUNT(*) FROM {catalog}.{schema}.{table_a} a
 JOIN {catalog}.{schema}.{table_b} b ON a.{fk_col} = b.{pk_col}
 ```
 
-### Step 6: Generate Report
+## Step 5: Output Report
 
-Output this EXACT format — do not deviate:
+Output this EXACT format:
 
 ```
 ════════════════════════════════════════════════════════════
   DATA EXPLORATION REPORT
   {catalog}.{schema}
-  Generated: {timestamp}
 ════════════════════════════════════════════════════════════
 
 SCHEMA OVERVIEW
 ───────────────
 Tables: {count}
-Total rows: {sum across all tables}
+Total rows: {sum}
 
 TABLE PROFILES
 ──────────────
@@ -143,52 +120,38 @@ TABLE PROFILES
 
   | Column | Type | Nulls % | Distinct | Min | Max | Top Values |
   |--------|------|---------|----------|-----|-----|------------|
-  | {col}  | {type} | {pct} | {n}    | {v} | {v} | {val (pct)} |
 
-  ⚠ Data quality flags:
-  - {col}: {issue description}
+  Data quality flags:
+  - {col}: {issue}
 
   Sample (5 rows):
-  | col1 | col2 | col3 | ... |
-  |------|------|------|-----|
-
-{repeat for each table}
+  | col1 | col2 | col3 |
+  |------|------|------|
 
 RELATIONSHIPS
 ─────────────
-
-  | Source | Column | Target | Column | Type | Validated |
-  |--------|--------|--------|--------|------|-----------|
-  | {tbl}  | {col}  | {tbl}  | {col}  | FK   | ✓ {n} matches |
+  | Source | Column | Target | Column | Validated |
+  |--------|--------|--------|--------|-----------|
 
 DATA QUALITY SUMMARY
 ────────────────────
-⚠ High null columns (>10%):
-  - {catalog}.{schema}.{table}.{col}: {pct}% null
-
-⚠ Constant columns (1 distinct value):
-  - {catalog}.{schema}.{table}.{col}: always "{value}"
-
-⚠ Potential PKs (0 nulls, all distinct):
-  - {catalog}.{schema}.{table}.{col}
+High null columns (>10%): ...
+Constant columns (1 distinct): ...
+PK candidates (0 nulls, all distinct): ...
 
 NEXT STEPS
 ──────────
-Based on this data, you can:
-• Build a dashboard        → /databricks-aibi-dashboards
-• Create a pipeline        → /databricks-spark-declarative-pipelines
-• Build a full DW demo     → /e2e-data-warehouse
-• Generate more test data  → /databricks-synthetic-data-gen
-• Query with natural lang  → /databricks-genie
+- Build a dashboard        → /databricks-aibi-dashboards
+- Create a pipeline        → /databricks-spark-declarative-pipelines
+- Build a full DW demo     → /e2e-data-warehouse
+- Generate more test data  → /databricks-synthetic-data-gen
 ════════════════════════════════════════════════════════════
 ```
 
 ## Rules
 
-- **Run autonomously** — do NOT pause to ask the user between steps
-- **Use only MCP tools**: `execute_sql`, `get_table_details`, `get_best_warehouse`
-- **Always use fully-qualified names**: `catalog.schema.table`
-- **Large tables (>1M rows)**: Add `TABLESAMPLE (1 PERCENT)` to distribution queries in Step 4d
-- **Max 20 tables** — skip the rest with a note
-- **Errors**: If a query fails on one table, log the error and continue with the next table
-- **No data modification** — never run INSERT, UPDATE, DELETE, CREATE, DROP, or ALTER
+- **NEVER** run SHOW CATALOGS or SHOW SCHEMAS — go directly to the provided catalog.schema
+- **NEVER** run INSERT, UPDATE, DELETE, CREATE, DROP, or ALTER
+- **NEVER** ask the user questions — run everything autonomously
+- On query error: log it and continue to the next table
+- Max 20 tables — skip the rest with a note

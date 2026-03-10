@@ -1,190 +1,139 @@
 ---
 name: e2e-data-warehouse
-description: "Build a complete end-to-end data warehouse demo on Databricks: synthetic data generation, bronze/silver/gold medallion layers, SDP pipelines, and AI/BI dashboard. Use when user mentions 'data warehouse demo', 'end-to-end warehouse', 'medallion demo', 'e2e data warehouse', or 'full lakehouse demo'."
-disable-model-invocation: true
-argument-hint: "[industry: retail|healthcare|financial|iot] [catalog.schema]"
+description: "Build a complete end-to-end data warehouse demo on Databricks with synthetic data, medallion architecture, pipelines, and dashboards."
 context: fork
-agent: warehouse-builder-agent
+agent: general-purpose
+allowed-tools:
+  - Bash
+  - Read
+  - Write
+  - Edit
+  - Grep
+  - Glob
+  - mcp__databricks__execute_sql
+  - mcp__databricks__get_table_details
+  - mcp__databricks__get_best_warehouse
+  - mcp__databricks__manage_pipelines
+  - mcp__databricks__create_or_update_dashboard
+  - mcp__databricks__manage_jobs
+disable-model-invocation: true
 ---
 
-# End-to-End Data Warehouse Flow
+# End-to-End Data Warehouse Demo — $ARGUMENTS
 
-Build a complete data warehouse demo on Databricks in one orchestrated workflow. Each step explicitly invokes an existing skill via its slash command.
+You are an autonomous warehouse builder agent. Build a complete data warehouse demo on Databricks following the steps below. Execute ALL steps sequentially without asking the user questions (except for catalog.schema if not provided).
 
-> **NEVER default catalog or schema** — always ask the user. If not provided in arguments, prompt before proceeding.
+## Your Target
 
-## Arguments
+Parse `$ARGUMENTS` as `[industry] [catalog.schema]`:
+- `industry`: One of `retail`, `healthcare`, `financial`, `iot` (default: `retail`)
+- `catalog.schema`: Unity Catalog target (e.g., `my_catalog.warehouse_demo`)
 
-| Argument | Required | Description |
-|----------|----------|-------------|
-| `industry` | Yes | One of: `retail`, `healthcare`, `financial`, `iot` |
-| `catalog.schema` | Yes | Unity Catalog target (e.g., `my_catalog.warehouse_demo`) |
-
-If the user omits arguments, ask:
-1. "Which industry vertical? (retail, healthcare, financial, iot)"
-2. "Which catalog.schema should I use for this demo?"
-
-## CRITICAL: Execution Rules
-
-1. Execute steps **sequentially** — do NOT skip or parallelize steps
-2. **Report what was created** after each step before moving to the next
-3. **Stop on failure** — do not proceed past a failed step
-4. At each step, **invoke the specified skill** using its `/slash-command` — the skill contains the detailed instructions and patterns
-
----
+**If catalog.schema is missing, respond with:** "Usage: /e2e-data-warehouse <industry> <catalog.schema>" and stop. NEVER default or guess the catalog.
 
 ## Step 1: Setup Infrastructure
 
-Before invoking any skill, create the target schema and volume:
-
+Run via `execute_sql`:
 ```sql
--- Run these via execute_sql MCP tool
 CREATE SCHEMA IF NOT EXISTS {catalog}.{schema};
 CREATE VOLUME IF NOT EXISTS {catalog}.{schema}.raw_data;
 ```
 
-**Report**: Confirm schema and volume exist.
-
----
+Report: Confirm schema and volume exist.
 
 ## Step 2: Generate Synthetic Data
 
-**Invoke**: `/databricks-synthetic-data-gen`
+**Invoke: `/databricks-synthetic-data-gen`**
 
-Load the industry preset from the `demo-presets` skill for the selected vertical. Then tell the datagen skill:
+Load the industry preset from the `demo-presets` skill. Tell the datagen skill:
 
-> "Generate synthetic data for a {industry} data warehouse demo in `{catalog}.{schema}`. Use the following table definitions from the demo preset: {paste the preset tables here}. Write raw data as Parquet to `/Volumes/{catalog}/{schema}/raw_data/{table_name}/`. Use Spark + Faker + Pandas UDFs on serverless compute. Generate master tables first, then child tables with valid foreign keys."
+> Generate synthetic data for a {industry} data warehouse demo in `{catalog}.{schema}`.
+> Write raw data as Parquet to `/Volumes/{catalog}/{schema}/raw_data/{table_name}/`.
+> Use Spark + Faker + Pandas UDFs on serverless compute.
+> Generate master tables first, then child tables with valid foreign keys.
+> NEVER use .cache() or .persist() on serverless.
 
-Key parameters to pass:
-- **catalog.schema**: `{catalog}.{schema}`
-- **Tables**: From the industry preset in `demo-presets` skill
-- **Row counts**: From the preset's suggested row counts
-- **Output**: Parquet files in `/Volumes/{catalog}/{schema}/raw_data/`
+Use these table definitions from the `demo-presets` skill for the selected industry vertical. Generate all tables with the suggested row counts.
 
-**Report**: List all tables generated with row counts and file paths.
+Report: List all tables generated with row counts and file paths.
 
----
+## Step 3: Create Medallion Pipeline
 
-## Step 3: Create Bronze → Silver → Gold Pipeline
+**Invoke: `/databricks-spark-declarative-pipelines`**
 
-**Invoke**: `/databricks-spark-declarative-pipelines`
+Create a Spark Declarative Pipeline with:
 
-Tell the SDP skill:
+**Bronze** (`bronze_` prefix): Streaming tables using `read_files()` from `/Volumes/{catalog}/{schema}/raw_data/{table}/`. Add `_ingested_at` and `_source_file` metadata columns. Use `CLUSTER BY` on date column.
 
-> "Create a Spark Declarative Pipeline for a {industry} medallion architecture in `{catalog}.{schema}`. Raw data is in `/Volumes/{catalog}/{schema}/raw_data/`. Create:
-> - **Bronze streaming tables** (`bronze_` prefix) using `read_files()` with `_ingested_at` and `_source_file` metadata columns, CLUSTER BY on date column
-> - **Silver streaming tables** (`silver_` prefix) with data quality expectations (CONSTRAINT EXPECT for non-null PKs, valid amounts/values), deduplication, type casting
-> - **Gold materialized views**: dimension tables (`dim_` prefix) and fact tables (`fact_` prefix) following star schema pattern with these metrics: {paste gold layer metrics from preset}
-> Use SQL. Use serverless compute. Deploy in development mode."
+**Silver** (`silver_` prefix): Streaming tables with data quality expectations:
+```sql
+CONSTRAINT valid_pk EXPECT ({pk_col} IS NOT NULL) ON VIOLATION DROP ROW
+```
+Cast types, trim strings, deduplicate.
 
-The SDP skill will handle:
-- Pipeline initialization via `databricks pipelines init` or manual creation
-- Source file organization by layer (`bronze/`, `silver/`, `gold/`)
-- Pipeline creation and execution via `manage_pipelines` MCP tool
-- Data quality expectations
+**Gold** (`dim_` and `fact_` prefixes): Materialized views following star schema. Use the gold layer metrics from the industry preset.
 
-**Report**: Pipeline ID, run status, and table row counts for all layers.
+Use SQL. Serverless compute. Development mode. Create via `manage_pipelines` MCP tool.
 
----
+Report: Pipeline ID, run status, row counts for all layers.
 
 ## Step 4: Create AI/BI Dashboard
 
-**Invoke**: `/databricks-aibi-dashboards`
+**Invoke: `/databricks-aibi-dashboards`**
 
-Tell the dashboard skill:
+Build a Lakeview dashboard from gold tables. Follow the MANDATORY validation workflow:
 
-> "Create an AI/BI dashboard for a {industry} data warehouse in `{catalog}.{schema}`. Use these gold layer tables: {list the dim_ and fact_ tables created in Step 3}. Build:
-> - **Page 1 - Overview**: KPI counters ({paste dashboard KPIs from preset}), revenue/volume trend line chart, breakdown bar chart
-> - **Page 2 - Details**: Categorical breakdown bar charts, detail drill-down table
-> Follow the mandatory validation workflow: get table schemas → write queries → TEST ALL QUERIES via execute_sql → build dashboard JSON → deploy."
+1. Get gold table schemas via `get_table_details`
+2. Write SQL queries for each dataset
+3. **TEST EVERY QUERY via `execute_sql`** — do NOT skip this
+4. Build dashboard JSON with:
+   - KPI counters (from dashboard KPIs in the industry preset)
+   - Time series line chart
+   - Breakdown bar charts
+   - Detail table
+5. Get warehouse via `get_best_warehouse`
+6. Deploy via `create_or_update_dashboard`
 
-The dashboard skill will handle:
-- Schema inspection via `get_table_details`
-- SQL query writing and **mandatory testing** via `execute_sql`
-- Dashboard JSON construction with correct widget versions
-- Deployment via `create_or_update_dashboard`
+Report: Dashboard URL and widget summary.
 
-**Report**: Dashboard URL and widget summary.
+## Step 5: Summary
 
----
-
-## Step 5: Optional — Package as Asset Bundle
-
-Ask the user: "Would you like to package this as a Databricks Asset Bundle for repeatable deployment?"
-
-If yes, **invoke**: `/databricks-asset-bundles`
-
-Tell the DABs skill:
-
-> "Package the {industry} data warehouse demo in `{catalog}.{schema}` as a Databricks Asset Bundle. Include:
-> - The SDP pipeline (ID: {pipeline_id from Step 3})
-> - Pipeline source files organized by layer
-> - A scheduled job for pipeline refresh
-> - Dev/prod deployment targets
-> Validate with `databricks bundle validate`."
-
-**Report**: Bundle structure, deployment targets, and validation status.
-
----
-
-## Step 6: Optional — Schedule Refresh Job
-
-Ask the user: "Would you like to create a scheduled job to refresh the pipeline?"
-
-If yes, **invoke**: `/databricks-jobs`
-
-Tell the jobs skill:
-
-> "Create a Databricks job to refresh the SDP pipeline `{pipeline_name}` (ID: {pipeline_id}) on a schedule. Use:
-> - Pipeline task type targeting the existing pipeline
-> - Daily schedule at 6am UTC (or ask user preference)
-> - Email notification on failure
-> - Serverless compute"
-
-**Report**: Job ID, schedule, and next run time.
-
----
-
-## Completion Summary
-
-After all steps, present:
+After all steps complete, output:
 
 ```
-Demo Warehouse Summary
-======================
-Industry:    {industry}
-Location:    {catalog}.{schema}
+════════════════════════════════════════════════════════════
+  DATA WAREHOUSE DEMO — {industry}
+  {catalog}.{schema}
+════════════════════════════════════════════════════════════
 
-Resources Created:
-| Layer    | Tables                        | Rows    |
-|----------|-------------------------------|---------|
-| Raw      | {list raw files/tables}       | {count} |
-| Bronze   | {list bronze tables}          | {count} |
-| Silver   | {list silver tables}          | {count} |
-| Gold     | {list gold dims + facts}      | {count} |
+RESOURCES CREATED
+─────────────────
+| Layer    | Tables                   | Rows    |
+|----------|--------------------------|---------|
+| Raw      | {list}                   | {count} |
+| Bronze   | {list}                   | {count} |
+| Silver   | {list}                   | {count} |
+| Gold     | {list dims + facts}      | {count} |
 
-Pipeline:    {pipeline_name} (ID: {pipeline_id})
-Dashboard:   {dashboard_url}
-Job:         {job_id or "Not requested"}
-Bundle:      {bundle_path or "Not requested"}
+Pipeline:  {pipeline_name} (ID: {pipeline_id})
+Dashboard: {dashboard_url}
+════════════════════════════════════════════════════════════
 ```
 
 ## Error Handling
 
-- If a step fails, **stop and report the error** with the specific MCP tool output
-- Suggest a fix and ask the user before retrying
-- Common issues:
-  - **Permission denied on catalog**: Ask user to verify catalog permissions
-  - **Warehouse not available**: Use `get_best_warehouse` to find an alternative
-  - **Pipeline timeout**: Increase timeout or check pipeline events with `manage_pipelines`
-  - **Dashboard query fails**: Re-test with `execute_sql` and fix column references
+- If a step fails, **stop and report the error** with the MCP tool output
+- Do NOT proceed past a failed step
+- Common fixes:
+  - Permission denied → user must grant catalog access
+  - No warehouse → use `get_best_warehouse`
+  - Pipeline timeout → check events via `manage_pipelines`
+  - Dashboard query fails → re-test with `execute_sql`, fix column names
 
-## Skills Invoked by This Flow
+## Skills Referenced
 
-| Step | Skill | Slash Command |
-|------|-------|---------------|
-| 2 | Synthetic Data Generation | `/databricks-synthetic-data-gen` |
-| 3 | Spark Declarative Pipelines | `/databricks-spark-declarative-pipelines` |
-| 4 | AI/BI Dashboards | `/databricks-aibi-dashboards` |
-| 5 | Asset Bundles | `/databricks-asset-bundles` |
-| 6 | Jobs | `/databricks-jobs` |
+| Step | Skill |
+|------|-------|
+| 2 | `/databricks-synthetic-data-gen` |
+| 3 | `/databricks-spark-declarative-pipelines` |
+| 4 | `/databricks-aibi-dashboards` |
