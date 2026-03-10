@@ -242,8 +242,8 @@ if [ "${LIST_SKILLS:-false}" = true ]; then
 fi
 
 # Set configuration URLs after parsing branch argument
-REPO_URL="https://github.com/databricks-solutions/ai-dev-kit.git"
-RAW_URL="https://raw.githubusercontent.com/databricks-solutions/ai-dev-kit/${BRANCH}"
+REPO_URL="${DEVKIT_REPO_URL:-https://github.com/databricks-solutions/ai-dev-kit.git}"
+RAW_URL="${DEVKIT_RAW_URL:-https://raw.githubusercontent.com/databricks-solutions/ai-dev-kit/${BRANCH}}"
 INSTALL_DIR="${AIDEVKIT_HOME:-$HOME/.ai-dev-kit}"
 REPO_DIR="$INSTALL_DIR/repo"
 VENV_DIR="$INSTALL_DIR/.venv"
@@ -1216,28 +1216,28 @@ install_flows() {
     local flow_count=0
 
     for tool in $TOOLS; do
-        local commands_dir agents_dir skills_dir
+        local agents_dir skills_dir
         case $tool in
             claude)
-                commands_dir="$base_dir/.claude/commands"
                 agents_dir="$base_dir/.claude/agents"
                 skills_dir="$base_dir/.claude/skills"
                 ;;
             cursor)
                 echo "$TOOLS" | grep -q claude && continue
-                commands_dir="$base_dir/.cursor/commands"
                 agents_dir="$base_dir/.cursor/agents"
                 skills_dir="$base_dir/.cursor/skills"
                 ;;
             *) continue ;;
         esac
 
-        # Install flow commands
-        if [ -d "$flows_src/commands" ]; then
-            mkdir -p "$commands_dir"
-            for cmd_file in "$flows_src/commands"/*.md; do
-                [ -f "$cmd_file" ] || continue
-                cp "$cmd_file" "$commands_dir/"
+        # Install flow skills (each is a directory with SKILL.md)
+        if [ -d "$flows_src/skills" ]; then
+            for skill_dir in "$flows_src/skills"/*/; do
+                [ -d "$skill_dir" ] || continue
+                local skill_name
+                skill_name=$(basename "$skill_dir")
+                rm -rf "$skills_dir/$skill_name"
+                cp -r "$skill_dir" "$skills_dir/$skill_name"
                 flow_count=$((flow_count + 1))
             done
         fi
@@ -1250,21 +1250,10 @@ install_flows() {
                 cp "$agent_file" "$agents_dir/"
             done
         fi
-
-        # Install flow-specific skills
-        if [ -d "$flows_src/skills" ]; then
-            for skill_dir in "$flows_src/skills"/*/; do
-                [ -d "$skill_dir" ] || continue
-                local skill_name
-                skill_name=$(basename "$skill_dir")
-                rm -rf "$skills_dir/$skill_name"
-                cp -r "$skill_dir" "$skills_dir/$skill_name"
-            done
-        fi
     done
 
     if [ $flow_count -gt 0 ]; then
-        ok "Flows ($flow_count commands) → .claude/commands/"
+        ok "Flows ($flow_count skills) → .claude/skills/"
     fi
 }
 

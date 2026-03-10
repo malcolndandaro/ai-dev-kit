@@ -9,7 +9,5 @@
   "homepage": "https://github.com/databricks-solutions/ai-dev-kit",
   "license": "DB License (see repo)",
   "keywords": ["databricks", "spark", "mlflow", "data-engineering", "ai-agents", "mcp", "flows"],
-  "skills": ["./databricks-skills/", "./databricks-flows/skills/"],
-  "commands": "./databricks-flows/commands/",
-  "agents": "./databricks-flows/agents/"
+  "skills": "./databricks-skills/"
 }

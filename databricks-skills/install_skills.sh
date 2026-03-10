@@ -34,7 +34,6 @@ NC='\033[0m' # No Color
 REPO_URL="https://github.com/databricks-solutions/ai-dev-kit"
 REPO_RAW_URL="https://raw.githubusercontent.com/databricks-solutions/ai-dev-kit/main"
 SKILLS_DIR=".claude/skills"
-COMMANDS_DIR=".claude/commands"
 AGENTS_DIR=".claude/agents"
 INSTALL_FROM_LOCAL=false
 INSTALL_FLOWS=false
@@ -58,10 +57,9 @@ APX_REPO_SKILL_PATH="skills/apx"
 # APX skills
 APX_SKILLS="databricks-app-apx"
 
-# Flows (commands + agents installed to .claude/commands/ and .claude/agents/)
-FLOW_COMMANDS="data-explorer e2e-data-warehouse"
+# Flows (skills installed to .claude/skills/, agents to .claude/agents/)
+FLOW_SKILLS="data-explorer e2e-data-warehouse demo-presets"
 FLOW_AGENTS="data-explorer-agent warehouse-builder-agent"
-FLOW_SKILLS="demo-presets"
 
 # All available skills
 ALL_SKILLS="$DATABRICKS_SKILLS $MLFLOW_SKILLS $APX_SKILLS"
@@ -563,8 +561,6 @@ flows_installed=0
 if [ "$INSTALL_FLOWS" = true ]; then
     echo -e "\n${GREEN}Installing Databricks Flows...${NC}"
 
-    # Create directories
-    mkdir -p "$COMMANDS_DIR"
     mkdir -p "$AGENTS_DIR"
 
     FLOWS_SRC_DIR="$(cd "$SCRIPT_DIR/.." && pwd)/databricks-flows"
@@ -574,13 +570,14 @@ if [ "$INSTALL_FLOWS" = true ]; then
         if [ ! -d "$FLOWS_SRC_DIR" ]; then
             echo -e "  ${RED}✗${NC} Flows source directory not found: $FLOWS_SRC_DIR"
         else
-            # Copy flow commands
-            if [ -d "$FLOWS_SRC_DIR/commands" ]; then
-                for cmd_file in "$FLOWS_SRC_DIR/commands"/*.md; do
-                    [ -f "$cmd_file" ] || continue
-                    cp "$cmd_file" "$COMMANDS_DIR/"
-                    local_name=$(basename "$cmd_file" .md)
-                    echo -e "  ${GREEN}✓${NC} Command: $local_name"
+            # Copy flow skills (each is a directory with SKILL.md)
+            if [ -d "$FLOWS_SRC_DIR/skills" ]; then
+                for skill_dir in "$FLOWS_SRC_DIR/skills"/*/; do
+                    [ -d "$skill_dir" ] || continue
+                    local_name=$(basename "$skill_dir")
+                    rm -rf "$SKILLS_DIR/$local_name"
+                    cp -r "$skill_dir" "$SKILLS_DIR/$local_name"
+                    echo -e "  ${GREEN}✓${NC} Flow skill: $local_name"
                     flows_installed=$((flows_installed + 1))
                 done
             fi
@@ -591,18 +588,7 @@ if [ "$INSTALL_FLOWS" = true ]; then
                     [ -f "$agent_file" ] || continue
                     cp "$agent_file" "$AGENTS_DIR/"
                     local_name=$(basename "$agent_file" .md)
-                    echo -e "  ${GREEN}✓${NC} Agent: $local_name"
-                done
-            fi
-
-            # Copy flow-specific skills
-            if [ -d "$FLOWS_SRC_DIR/skills" ]; then
-                for skill_dir in "$FLOWS_SRC_DIR/skills"/*/; do
-                    [ -d "$skill_dir" ] || continue
-                    local_name=$(basename "$skill_dir")
-                    rm -rf "$SKILLS_DIR/$local_name"
-                    cp -r "$skill_dir" "$SKILLS_DIR/$local_name"
-                    echo -e "  ${GREEN}✓${NC} Flow skill: $local_name"
+                    echo -e "  ${GREEN}✓${NC} Flow agent: $local_name"
                 done
             fi
         fi
@@ -610,31 +596,13 @@ if [ "$INSTALL_FLOWS" = true ]; then
         # Download from GitHub
         FLOWS_RAW_URL="${REPO_RAW_URL}/databricks-flows"
 
-        # Download flow commands
-        for cmd in $FLOW_COMMANDS; do
-            if curl -sSL -f "${FLOWS_RAW_URL}/commands/${cmd}.md" -o "$COMMANDS_DIR/${cmd}.md" 2>/dev/null; then
-                echo -e "  ${GREEN}✓${NC} Command: $cmd"
-                flows_installed=$((flows_installed + 1))
-            else
-                echo -e "  ${YELLOW}○${NC} Command $cmd not found"
-            fi
-        done
-
-        # Download flow agents
-        for agent in $FLOW_AGENTS; do
-            if curl -sSL -f "${FLOWS_RAW_URL}/agents/${agent}.md" -o "$AGENTS_DIR/${agent}.md" 2>/dev/null; then
-                echo -e "  ${GREEN}✓${NC} Agent: $agent"
-            else
-                echo -e "  ${YELLOW}○${NC} Agent $agent not found"
-            fi
-        done
-
-        # Download flow-specific skills
+        # Download flow skills
         for flow_skill in $FLOW_SKILLS; do
             local flow_skill_dir="$SKILLS_DIR/$flow_skill"
             mkdir -p "$flow_skill_dir"
             if curl -sSL -f "${FLOWS_RAW_URL}/skills/${flow_skill}/SKILL.md" -o "$flow_skill_dir/SKILL.md" 2>/dev/null; then
                 echo -e "  ${GREEN}✓${NC} Flow skill: $flow_skill"
+                flows_installed=$((flows_installed + 1))
             else
                 echo -e "  ${YELLOW}○${NC} Flow skill $flow_skill not found"
                 rm -rf "$flow_skill_dir"
@@ -657,7 +625,7 @@ fi
 echo ""
 echo -e "${BLUE}Skills installed to: ${SKILLS_DIR}/${NC}"
 if [ $flows_installed -gt 0 ]; then
-    echo -e "${BLUE}Flow commands installed to: ${COMMANDS_DIR}/${NC}"
+    echo -e "${BLUE}Flow skills installed to: ${SKILLS_DIR}/${NC}"
     echo -e "${BLUE}Flow agents installed to: ${AGENTS_DIR}/${NC}"
 fi
 echo ""
@@ -670,9 +638,9 @@ done
 if [ $flows_installed -gt 0 ]; then
     echo ""
     echo -e "Installed flows:"
-    for cmd in $FLOW_COMMANDS; do
-        if [ -f "$COMMANDS_DIR/${cmd}.md" ]; then
-            echo -e "  ${GREEN}✓${NC} /$cmd"
+    for flow_skill in $FLOW_SKILLS; do
+        if [ -d "$SKILLS_DIR/$flow_skill" ]; then
+            echo -e "  ${GREEN}✓${NC} /$flow_skill"
         fi
     done
 fi
