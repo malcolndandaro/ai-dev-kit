@@ -1,220 +1,194 @@
 ---
 name: data-explorer
-description: "Explore Databricks data interactively. Discover catalogs, schemas, tables, profile data quality, find relationships, and generate exploration reports. Use when you need to understand data, discover tables, profile columns, or find join candidates."
+description: "Profile and explore Databricks tables. Generates a structured data profiling report with row counts, null rates, distributions, relationships, and data quality flags."
 disable-model-invocation: true
-argument-hint: "[catalog] [schema] [table]"
+argument-hint: "<catalog.schema> [table1,table2,...]"
 context: fork
 agent: data-explorer-agent
 ---
 
 # Data Explorer Flow
 
-Interactively explore your Databricks data — discover catalogs, schemas, and tables, profile data quality, identify relationships, and generate a structured exploration report.
+Profile tables in a Databricks schema and produce a structured exploration report.
 
-## CRITICAL: Execution Rules
+> **Arguments are required.** The user MUST provide `catalog.schema`. If not provided, stop and ask for it — do not guess or default.
 
-1. Execute steps **sequentially** — each step builds on the previous
-2. **Ask the user** before narrowing scope (which catalog, which schema, which tables)
-3. Use **MCP tools directly** for SQL execution — this flow does not invoke other skills
-4. **Always use fully-qualified table names**: `catalog.schema.table`
+## Inputs
 
-## Workflow
+| Argument | Required | Example |
+|----------|----------|---------|
+| `catalog.schema` | **Yes** | `my_catalog.sales_data` |
+| `table1,table2,...` | No — profiles ALL tables in schema if omitted | `orders,customers,products` |
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│  STEP 1: Connect & Discover Catalogs                        │
-│  → get_best_warehouse, then execute_sql("SHOW CATALOGS")    │
-├─────────────────────────────────────────────────────────────┤
-│  STEP 2: Explore Schemas                                    │
-│  → execute_sql("SHOW SCHEMAS IN <catalog>")                 │
-├─────────────────────────────────────────────────────────────┤
-│  STEP 3: Explore Tables                                     │
-│  → execute_sql("SHOW TABLES IN <catalog>.<schema>")         │
-│  → get_table_details(catalog, schema)                       │
-├─────────────────────────────────────────────────────────────┤
-│  STEP 4: Profile Selected Tables                            │
-│  → execute_sql for row counts, nulls, distinct, min/max     │
-├─────────────────────────────────────────────────────────────┤
-│  STEP 5: Discover Relationships                             │
-│  → Analyze FK patterns, shared columns, join candidates     │
-├─────────────────────────────────────────────────────────────┤
-│  STEP 6: Summarize & Suggest Next Actions                   │
-│  → Report + recommend /databricks-aibi-dashboards,          │
-│    /databricks-spark-declarative-pipelines, or              │
-│    /e2e-data-warehouse as follow-ups                        │
-└─────────────────────────────────────────────────────────────┘
-```
+## Execution
 
----
+Run these steps exactly. Do NOT ask the user for input between steps — execute the full profiling pipeline autonomously and present the final report.
 
-## Step 1: Connect & Discover Catalogs
+### Step 1: Get Warehouse
 
-Get an available warehouse:
 ```
 get_best_warehouse
 ```
 
-If the user did **not** provide a catalog argument, list available catalogs:
+If no warehouse available, stop and tell the user.
+
+### Step 2: Validate Schema Exists
+
 ```sql
-SHOW CATALOGS
+-- Run via execute_sql
+SHOW TABLES IN {catalog}.{schema}
 ```
 
-Present the catalog list and ask the user to choose one. If the user provided a catalog argument, skip to Step 2.
+If schema doesn't exist or is empty, stop and report the error.
 
----
+### Step 3: Get Table Metadata
 
-## Step 2: Explore Schemas
-
-List schemas in the chosen catalog:
-```sql
-SHOW SCHEMAS IN <catalog>
+```
+get_table_details(catalog="{catalog}", schema="{schema}")
 ```
 
-If the user did **not** provide a schema argument, present the list and ask them to choose. Otherwise, proceed with the provided schema.
+If user specified tables, filter to only those. Otherwise, profile ALL tables in the schema (up to 20 tables max — if more than 20, profile the first 20 and note the rest were skipped).
 
----
+### Step 4: Profile Each Table
 
-## Step 3: Explore Tables
+For EACH table, run these queries via `execute_sql`. Combine into as few queries as possible.
 
-List tables and get structural details:
-```sql
-SHOW TABLES IN <catalog>.<schema>
-```
+**4a. Row count + column nulls + distinct counts** (one query per table):
 
-Then fetch detailed metadata:
-```
-get_table_details(catalog="<catalog>", schema="<schema>")
-```
-
-Present a summary table:
-
-| Table | Type | Columns | Description |
-|-------|------|---------|-------------|
-| orders | MANAGED | 12 | Customer order records |
-| ... | ... | ... | ... |
-
-If the user did **not** provide a table argument, ask which table(s) they want to profile. The user can select one or multiple tables.
-
----
-
-## Step 4: Profile Selected Tables
-
-For each selected table, run profiling queries via `execute_sql`:
-
-**Row count and null/distinct stats** (one query per table):
 ```sql
 SELECT
-  COUNT(*) AS row_count,
-  COUNT(*) - COUNT(col1) AS col1_nulls,
-  COUNT(DISTINCT col1) AS col1_distinct,
-  COUNT(*) - COUNT(col2) AS col2_nulls,
-  COUNT(DISTINCT col2) AS col2_distinct
-FROM <catalog>.<schema>.<table>
+  COUNT(*) AS total_rows,
+  {for each column:}
+  COUNT({col}) AS {col}_non_null,
+  COUNT(DISTINCT {col}) AS {col}_distinct,
+  {end for}
+FROM {catalog}.{schema}.{table}
 ```
 
-**Numeric column stats** (for each numeric column):
+**4b. Numeric stats** (one query per table, only for INT/BIGINT/DECIMAL/DOUBLE/FLOAT columns):
+
 ```sql
 SELECT
-  MIN(<col>) AS min_val,
-  MAX(<col>) AS max_val,
-  AVG(<col>) AS avg_val,
-  PERCENTILE(<col>, 0.5) AS median_val
-FROM <catalog>.<schema>.<table>
+  {for each numeric column:}
+  MIN({col}) AS {col}_min,
+  MAX({col}) AS {col}_max,
+  ROUND(AVG({col}), 2) AS {col}_avg,
+  {end for}
+FROM {catalog}.{schema}.{table}
 ```
 
-**Date column stats** (for each date/timestamp column):
+**4c. Date range** (one query per table, only for DATE/TIMESTAMP columns):
+
 ```sql
 SELECT
-  MIN(<col>) AS earliest,
-  MAX(<col>) AS latest,
-  DATEDIFF(MAX(<col>), MIN(<col>)) AS span_days
-FROM <catalog>.<schema>.<table>
+  {for each date column:}
+  MIN({col}) AS {col}_earliest,
+  MAX({col}) AS {col}_latest,
+  DATEDIFF(DAY, MIN({col}), MAX({col})) AS {col}_span_days,
+  {end for}
+FROM {catalog}.{schema}.{table}
 ```
 
-**Value distributions** (for categorical columns with <100 distinct values):
+**4d. Top values for categorical columns** (only for STRING columns with <50 distinct values):
+
 ```sql
-SELECT <col>, COUNT(*) AS cnt
-FROM <catalog>.<schema>.<table>
-GROUP BY <col>
+SELECT {col}, COUNT(*) AS cnt
+FROM {catalog}.{schema}.{table}
+GROUP BY {col}
 ORDER BY cnt DESC
-LIMIT 10
-```
-
-Present results:
-
-| Column | Type | Nulls | Null % | Distinct | Min | Max | Top Value |
-|--------|------|-------|--------|----------|-----|-----|-----------|
-| order_id | BIGINT | 0 | 0% | 50000 | 1 | 50000 | - |
-| status | STRING | 12 | 0.02% | 5 | - | - | completed (80%) |
-
----
-
-## Step 5: Discover Relationships
-
-Analyze column names across all tables in the schema to find join candidates:
-
-1. **FK pattern detection** — Look for columns ending in `_id`, `_key`, `_code`, or matching `<other_table>_id` patterns
-2. **Shared column names** — Find columns that appear in multiple tables (e.g., `customer_id` in both `orders` and `customers`)
-3. **Name similarity** — Identify columns with similar names across tables that could be join keys
-
-Present relationship findings:
-
-| Table A | Column | Table B | Column | Relationship Type |
-|---------|--------|---------|--------|-------------------|
-| orders | customer_id | customers | id | FK candidate (naming pattern) |
-| orders | product_id | products | id | FK candidate (naming pattern) |
-
-**Suggest join queries** for the most likely relationships:
-```sql
--- orders <-> customers (via customer_id = id)
-SELECT o.*, c.name, c.email
-FROM <catalog>.<schema>.orders o
-JOIN <catalog>.<schema>.customers c ON o.customer_id = c.id
 LIMIT 5
 ```
 
----
+**4e. Sample rows** (5 rows per table for quick inspection):
 
-## Step 6: Summarize & Suggest Next Actions
+```sql
+SELECT * FROM {catalog}.{schema}.{table} LIMIT 5
+```
 
-Present a final exploration report:
+### Step 5: Detect Relationships
 
-**1. Schema Overview**
-- Catalog, schema, number of tables, total rows
+Analyze column metadata across all profiled tables:
 
-**2. Table Profiles**
-- Per-table summary: row count, column count, key columns, date range
-- Data quality flags: columns with >10% nulls, constant columns
+1. **FK pattern**: Column named `{other_table}_id` or `{other_table}_key` → maps to `{other_table}.id` or `{other_table}.{other_table}_id`
+2. **Shared columns**: Same column name in 2+ tables (e.g., `customer_id` in `orders` and `returns`)
+3. **PK candidates**: Columns with 0 nulls AND distinct count = row count
 
-**3. Relationships**
-- Confirmed/suggested joins between tables
+For each detected relationship, validate with a count query:
+```sql
+SELECT COUNT(*) AS match_count
+FROM {catalog}.{schema}.{table_a} a
+JOIN {catalog}.{schema}.{table_b} b ON a.{fk_col} = b.{pk_col}
+```
 
-**4. Data Quality Notes**
-- High null rates, potential data issues, cleanup recommendations
+### Step 6: Generate Report
 
-**5. Recommended Next Steps**
+Output this EXACT format — do not deviate:
 
-Based on the exploration results, suggest specific follow-up actions using slash commands:
+```
+════════════════════════════════════════════════════════════
+  DATA EXPLORATION REPORT
+  {catalog}.{schema}
+  Generated: {timestamp}
+════════════════════════════════════════════════════════════
 
-- **"Build a dashboard on this data"** → Tell the user to invoke `/databricks-aibi-dashboards` with the discovered gold-ready tables
-- **"Create a medallion pipeline"** → Tell the user to invoke `/databricks-spark-declarative-pipelines` to build bronze/silver/gold layers
-- **"Generate more test data"** → Tell the user to invoke `/databricks-synthetic-data-gen` based on the discovered schema patterns
-- **"Build a full data warehouse demo"** → Tell the user to invoke `/e2e-data-warehouse` to create a complete end-to-end demo
-- **"Explore with natural language"** → Tell the user to invoke `/databricks-genie` to create a Genie Space for conversational exploration
+SCHEMA OVERVIEW
+───────────────
+Tables: {count}
+Total rows: {sum across all tables}
 
----
+TABLE PROFILES
+──────────────
 
-## Available MCP Tools
+▸ {table_name} ({row_count} rows, {col_count} columns)
 
-| Tool | Usage |
-|------|-------|
-| `get_best_warehouse` | Get an available SQL warehouse ID |
-| `execute_sql` | Run SQL queries for discovery and profiling |
-| `get_table_details` | Get table schemas, column types, and metadata |
+  | Column | Type | Nulls % | Distinct | Min | Max | Top Values |
+  |--------|------|---------|----------|-----|-----|------------|
+  | {col}  | {type} | {pct} | {n}    | {v} | {v} | {val (pct)} |
 
-## Tips
+  ⚠ Data quality flags:
+  - {col}: {issue description}
 
-- **Start broad, narrow down** — If the user doesn't know what they're looking for, start with catalogs and guide them
-- **Batch profiling queries** — Combine multiple column stats into a single query to reduce round trips
-- **Large tables** — For tables with >1M rows, use `TABLESAMPLE (1 PERCENT)` for distribution queries
-- **Handle errors gracefully** — If a table is inaccessible, note it and continue with others
+  Sample (5 rows):
+  | col1 | col2 | col3 | ... |
+  |------|------|------|-----|
+
+{repeat for each table}
+
+RELATIONSHIPS
+─────────────
+
+  | Source | Column | Target | Column | Type | Validated |
+  |--------|--------|--------|--------|------|-----------|
+  | {tbl}  | {col}  | {tbl}  | {col}  | FK   | ✓ {n} matches |
+
+DATA QUALITY SUMMARY
+────────────────────
+⚠ High null columns (>10%):
+  - {catalog}.{schema}.{table}.{col}: {pct}% null
+
+⚠ Constant columns (1 distinct value):
+  - {catalog}.{schema}.{table}.{col}: always "{value}"
+
+⚠ Potential PKs (0 nulls, all distinct):
+  - {catalog}.{schema}.{table}.{col}
+
+NEXT STEPS
+──────────
+Based on this data, you can:
+• Build a dashboard        → /databricks-aibi-dashboards
+• Create a pipeline        → /databricks-spark-declarative-pipelines
+• Build a full DW demo     → /e2e-data-warehouse
+• Generate more test data  → /databricks-synthetic-data-gen
+• Query with natural lang  → /databricks-genie
+════════════════════════════════════════════════════════════
+```
+
+## Rules
+
+- **Run autonomously** — do NOT pause to ask the user between steps
+- **Use only MCP tools**: `execute_sql`, `get_table_details`, `get_best_warehouse`
+- **Always use fully-qualified names**: `catalog.schema.table`
+- **Large tables (>1M rows)**: Add `TABLESAMPLE (1 PERCENT)` to distribution queries in Step 4d
+- **Max 20 tables** — skip the rest with a note
+- **Errors**: If a query fails on one table, log the error and continue with the next table
+- **No data modification** — never run INSERT, UPDATE, DELETE, CREATE, DROP, or ALTER
