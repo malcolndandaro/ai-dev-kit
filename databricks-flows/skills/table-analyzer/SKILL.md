@@ -1,8 +1,8 @@
 ---
-name: aidevkit:flow:table-optimizer
+name: aidevkit:flow:table-analyzer
 description: "Analyze Databricks Delta tables for optimization gaps — PK/FK constraints, comments, OPTIMIZE/VACUUM history, predictive optimization, small files, table properties, partitioning, and more. Produces an actionable health report with scores and fix commands."
 context: fork
-agent: aidevkit:flow:table-optimizer-agent
+agent: aidevkit:flow:table-analyzer-agent
 allowed-tools:
   - Bash
   - Read
@@ -14,7 +14,7 @@ allowed-tools:
 disable-model-invocation: true
 ---
 
-# Table Optimizer — Analyze tables in: $ARGUMENTS
+# Table Analyzer — Analyze tables in: $ARGUMENTS
 
 You are an autonomous table optimization analyst. Inspect all Delta tables in the specified schema and produce a health report with actionable recommendations. Run ALL steps without asking the user any questions.
 
@@ -25,7 +25,7 @@ Parse `$ARGUMENTS` as `<catalog.schema> [table1,table2,...]`:
 - Remaining tokens (optional) = comma-separated table names to analyze
 - If no tables specified, analyze ALL tables in the schema (max 20)
 
-**If $ARGUMENTS is empty or missing catalog.schema, respond with:** "Usage: /aidevkit:flow:table-optimizer <catalog.schema> [table1,table2,...]" and stop.
+**If $ARGUMENTS is empty or missing catalog.schema, respond with:** "Usage: /aidevkit:flow:table-analyzer <catalog.schema> [table1,table2,...]" and stop.
 
 ## Step 1: Get Warehouse
 

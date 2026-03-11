@@ -1119,6 +1119,10 @@ install_skills() {
     if [ -f "$manifest" ]; then
         while IFS='|' read -r prev_dir prev_skill; do
             [ -z "$prev_skill" ] && continue
+            # Never touch user-created flows (user-flow-* prefix)
+            if [[ "$prev_skill" == user-flow-* ]]; then
+                continue
+            fi
             # Skip if this skill is still selected
             if echo " $all_new_skills " | grep -qw "$prev_skill"; then
                 continue
@@ -1198,12 +1202,13 @@ install_skills() {
     fi
 
     # Install flows (commands, agents, flow-specific skills)
-    install_flows "$base_dir"
+    install_flows "$base_dir" "$manifest"
 }
 
 # Install Databricks Flows (commands + agents + flow skills)
 install_flows() {
     local base_dir=$1
+    local manifest=$2
     local flows_src="$REPO_DIR/databricks-flows"
 
     # Skip if flows directory doesn't exist in repo
@@ -1231,13 +1236,20 @@ install_flows() {
         esac
 
         # Install flow skills (each is a directory with SKILL.md)
+        # Note: user-created flows (user-flow-* prefix) are never touched by the installer.
+        # They are created by the flow builder and belong to the user.
         if [ -d "$flows_src/skills" ]; then
             for skill_dir in "$flows_src/skills"/*/; do
                 [ -d "$skill_dir" ] || continue
                 local skill_name
                 skill_name=$(basename "$skill_dir")
+                # Skip user-created flows — they must never be overwritten by the installer
+                if [[ "$skill_name" == user-flow-* ]]; then
+                    continue
+                fi
                 rm -rf "$skills_dir/$skill_name"
                 cp -r "$skill_dir" "$skills_dir/$skill_name"
+                echo "$skills_dir|$skill_name" >> "$manifest"
                 flow_count=$((flow_count + 1))
             done
         fi
