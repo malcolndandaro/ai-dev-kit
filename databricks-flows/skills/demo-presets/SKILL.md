@@ -1,5 +1,5 @@
 ---
-name: demo-presets
+name: aidevkit:flow:demo-presets
 description: "Industry-specific data warehouse presets defining table schemas, relationships, row counts, and gold layer metrics. Supports retail, healthcare, financial, and IoT verticals. Use when building end-to-end data warehouse demos with the e2e-data-warehouse flow."
 ---
 
@@ -395,7 +395,7 @@ When building an e2e-data-warehouse demo:
 
 **Example**:
 ```
-/e2e-data-warehouse retail my_catalog.demo_warehouse
+/aidevkit:flow:e2e-data-warehouse retail my_catalog.demo_warehouse
 ```
 
 This loads the retail preset and builds:

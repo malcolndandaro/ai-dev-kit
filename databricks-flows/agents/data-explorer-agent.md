@@ -1,5 +1,5 @@
 ---
-name: data-explorer-agent
+name: aidevkit:flow:data-explorer-agent
 description: "Autonomous data profiling agent. Takes a catalog.schema, profiles all tables, detects relationships, and outputs a structured report. Read-only — never modifies data."
 allowed-tools:
   - Read

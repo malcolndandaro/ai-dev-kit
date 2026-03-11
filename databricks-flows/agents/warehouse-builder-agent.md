@@ -1,5 +1,5 @@
 ---
-name: warehouse-builder-agent
+name: aidevkit:flow:warehouse-builder-agent
 description: "Specialized subagent that builds a complete data warehouse demo on Databricks. Handles synthetic data generation, medallion architecture (bronze/silver/gold), SDP pipelines, and AI/BI dashboards for a given industry vertical."
 ---
 

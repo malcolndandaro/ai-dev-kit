@@ -1,8 +1,8 @@
 ---
-name: table-optimizer
+name: aidevkit:flow:table-optimizer
 description: "Analyze Databricks Delta tables for optimization gaps — PK/FK constraints, comments, OPTIMIZE/VACUUM history, predictive optimization, small files, table properties, partitioning, and more. Produces an actionable health report with scores and fix commands."
 context: fork
-agent: table-optimizer-agent
+agent: aidevkit:flow:table-optimizer-agent
 allowed-tools:
   - Bash
   - Read
@@ -25,7 +25,7 @@ Parse `$ARGUMENTS` as `<catalog.schema> [table1,table2,...]`:
 - Remaining tokens (optional) = comma-separated table names to analyze
 - If no tables specified, analyze ALL tables in the schema (max 20)
 
-**If $ARGUMENTS is empty or missing catalog.schema, respond with:** "Usage: /table-optimizer <catalog.schema> [table1,table2,...]" and stop.
+**If $ARGUMENTS is empty or missing catalog.schema, respond with:** "Usage: /aidevkit:flow:table-optimizer <catalog.schema> [table1,table2,...]" and stop.
 
 ## Step 1: Get Warehouse
 
@@ -296,9 +296,9 @@ Priority actions across all tables, ordered by impact:
 
 NEXT STEPS
 ──────────
-- Profile your data              → /data-explorer {catalog}.{schema}
+- Profile your data              → /aidevkit:flow:data-explorer {catalog}.{schema}
 - Build a pipeline               → /databricks-spark-declarative-pipelines
-- Build a full DW demo           → /e2e-data-warehouse
+- Build a full DW demo           → /aidevkit:flow:e2e-data-warehouse
 ════════════════════════════════════════════════════════════════
 ```
 

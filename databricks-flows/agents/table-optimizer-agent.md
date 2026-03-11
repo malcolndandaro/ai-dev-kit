@@ -1,5 +1,5 @@
 ---
-name: table-optimizer-agent
+name: aidevkit:flow:table-optimizer-agent
 description: "Autonomous table optimization analyst. Takes a catalog.schema, inspects Delta tables for optimization gaps (PK/FK, comments, OPTIMIZE history, predictive optimization, small files, table properties), and outputs an actionable health report. Read-only — never modifies data."
 allowed-tools:
   - Read

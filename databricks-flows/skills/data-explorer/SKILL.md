@@ -1,8 +1,8 @@
 ---
-name: data-explorer
+name: aidevkit:flow:data-explorer
 description: "Profile Databricks tables and generate a data exploration report with row counts, null rates, distributions, and relationships."
 context: fork
-agent: general-purpose
+agent: aidevkit:flow:data-explorer-agent
 allowed-tools:
   - Bash
   - Read
@@ -25,7 +25,7 @@ Parse `$ARGUMENTS` as `<catalog.schema> [table1,table2,...]`:
 - Remaining tokens (optional) = comma-separated table names to profile
 - If no tables specified, profile ALL tables in the schema (max 20)
 
-**If $ARGUMENTS is empty or missing catalog.schema, respond with:** "Usage: /data-explorer <catalog.schema> [table1,table2,...]" and stop.
+**If $ARGUMENTS is empty or missing catalog.schema, respond with:** "Usage: /aidevkit:flow:data-explorer <catalog.schema> [table1,table2,...]" and stop.
 
 ## Step 1: Get Warehouse
 
@@ -143,7 +143,7 @@ NEXT STEPS
 ──────────
 - Build a dashboard        → /databricks-aibi-dashboards
 - Create a pipeline        → /databricks-spark-declarative-pipelines
-- Build a full DW demo     → /e2e-data-warehouse
+- Build a full DW demo     → /aidevkit:flow:e2e-data-warehouse
 - Generate more test data  → /databricks-synthetic-data-gen
 ════════════════════════════════════════════════════════════
 ```

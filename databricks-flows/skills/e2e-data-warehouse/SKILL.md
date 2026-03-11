@@ -1,8 +1,8 @@
 ---
-name: e2e-data-warehouse
+name: aidevkit:flow:e2e-data-warehouse
 description: "Build a complete end-to-end data warehouse demo on Databricks with synthetic data, medallion architecture, pipelines, and dashboards."
 context: fork
-agent: general-purpose
+agent: aidevkit:flow:warehouse-builder-agent
 allowed-tools:
   - Bash
   - Read
@@ -29,7 +29,7 @@ Parse `$ARGUMENTS` as `[industry] [catalog.schema]`:
 - `industry`: One of `retail`, `healthcare`, `financial`, `iot` (default: `retail`)
 - `catalog.schema`: Unity Catalog target (e.g., `my_catalog.warehouse_demo`)
 
-**If catalog.schema is missing, respond with:** "Usage: /e2e-data-warehouse <industry> <catalog.schema>" and stop. NEVER default or guess the catalog.
+**If catalog.schema is missing, respond with:** "Usage: /aidevkit:flow:e2e-data-warehouse <industry> <catalog.schema>" and stop. NEVER default or guess the catalog.
 
 ## Step 1: Setup Infrastructure
 
